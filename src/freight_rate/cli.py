@@ -43,10 +43,8 @@ class Pipeline:
 
     @classmethod
     def build(cls) -> Pipeline:
-        raw_train = loading.load_train()
-        raw_validation = loading.load_validation()
-        train, stats = cleaning.fit_apply(raw_train)
-        validation = cleaning.apply(raw_validation, stats)
+        train = cleaning.clean(loading.load_train())
+        validation = cleaning.clean(loading.load_validation())
         return cls(train, validation, market.daily_levels(train, validation))
 
     def model(self, encoding: DateEncoding = DateEncoding.CYCLICAL) -> RateModel:

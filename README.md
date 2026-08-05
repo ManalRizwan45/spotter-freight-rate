@@ -136,7 +136,7 @@ with the December market. Figure: `reports/figures/december_encoding_comparison.
 src/freight_rate/
   config.py       frozen dataclasses — paths, folds, model params, seed
   loading.py      CSV reads with schema enforcement
-  cleaning.py     fit/apply split so learned quantities come from train only
+  cleaning.py     sign errors and gaps — pure transforms, nothing learned
   market.py       daily market level recovery
   features/
     geography.py  haversine, bearing, city coordinate lookup
@@ -161,9 +161,11 @@ tests/            31 tests, including a scorer-contract guard
   navigable.
 - **`HistGradientBoostingRegressor`.** Handles NaN natively (missing `weight` carries
   signal), trains 48,000 rows in seconds, needs no scaling or one-hot expansion.
-- **Leakage boundary.** Anything learned from data is fitted on the training fold and
-  applied elsewhere. The one deliberate exception is the daily market level, which reads
-  the `market_index` *feature* column — never `posted_rate` — for a window the assessment
-  supplies. That judgment call is called out here and in the report.
+- **Leakage boundary.** Cleaning learns nothing from the data — every repair is a pure
+  transform, so there is no fitted quantity that could carry training information into
+  the prediction window. The daily market level does read the `market_index` *feature*
+  column — never `posted_rate` — across both train and validation, because the
+  assessment supplies it for the prediction window. That judgment call is called out
+  here and in the report.
 - **`tests/test_scorer_contract.py`** asserts the output satisfies every rule in
   `score.py`. A format rejection scores zero regardless of model quality.
