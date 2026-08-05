@@ -7,7 +7,7 @@ neither of which applies here.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -68,15 +68,13 @@ class ModelParams:
     random_state: int = RANDOM_SEED
 
     def as_kwargs(self) -> dict:
-        return dict(
-            max_iter=self.max_iter,
-            learning_rate=self.learning_rate,
-            max_leaf_nodes=self.max_leaf_nodes,
-            min_samples_leaf=self.min_samples_leaf,
-            l2_regularization=self.l2_regularization,
-            early_stopping=self.early_stopping,
-            random_state=self.random_state,
-        )
+        """Keyword arguments for the sklearn estimator.
+
+        Derived from the fields rather than listed by hand: a hand-written dict would
+        silently omit any hyperparameter added later, so the field would exist and
+        never reach the model. test_config.py pins the coverage.
+        """
+        return asdict(self)
 
 
 @dataclass(frozen=True)
