@@ -11,21 +11,9 @@ Issues addressed, with counts from the supplied files:
   missing market_index 374 / 249. Filled from the same date's mean, because 97.8% of
                        the column's variance is explained by date alone.
 
-There is no fit/apply split here, because nothing is learned from the training data.
-Every repair is a pure transform: abs() on a sign error, and a fill computed from the
-row's own date group - information the assessment supplies for the prediction window
-just as it does for training.
-
-An earlier version carried a training-derived fallback for dates with no market_index
-at all. It never fired: all 249 validation gaps are covered by their own date's mean,
-and every one of the 61 validation dates has at least 159 observed values. Had it
-fired it would have injected the training mean of 1.083 into a window whose mean is
-0.927 - a spring-peak value in a soft-market month, on the column with the worst
-train/validation shift in the dataset.
-
-A date that genuinely has no market_index now stays NaN and fails loudly in
-features.temporal.build_cyclical, which names the offending dates. That is a better
-place to find out than silently inheriting a number from another market regime.
+Nothing is learned from the data, so there is no fit/apply pair - every repair is a
+pure transform. A date with no market_index at all stays NaN and fails in
+features.temporal.build_cyclical, which names it.
 """
 from __future__ import annotations
 
