@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .config import CONFIG, DecemberSettings
+from .config import CONFIG
 from .features import geography
 
 
@@ -54,15 +54,14 @@ def estimate_quote_signal(train: pd.DataFrame, equipment: str,
 
 
 def prepare(december: pd.DataFrame, train: pd.DataFrame, validation: pd.DataFrame,
-            market_levels: pd.Series, constant_market: bool = False,
-            settings: DecemberSettings | None = None) -> pd.DataFrame:
+            market_levels: pd.Series, constant_market: bool = False) -> pd.DataFrame:
     """Return the December rows with every column the model requires.
 
     `constant_market` substitutes the global training mean for the daily level. That is
     the naive path - it is retained because it is what happens when the recoverability
     of the daily level goes unnoticed, and it produces a perfectly flat chart.
     """
-    settings = settings or CONFIG.december
+    settings = CONFIG.december
 
     frame = _resolve_coordinates(
         december, geography.city_coordinates(train, validation)

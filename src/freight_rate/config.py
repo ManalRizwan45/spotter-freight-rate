@@ -17,8 +17,13 @@ RANDOM_SEED = 0
 
 @dataclass(frozen=True)
 class Paths:
-    root: Path = PROJECT_ROOT
-    data: Path = PROJECT_ROOT / "data"
+    """Every path the pipeline reads or writes.
+
+    Deliberately not parameterised by a `root` field: the fields would not track it
+    (each default is computed from the module-level PROJECT_ROOT), so accepting one
+    would invite `Paths(root=tmp)` and silently ignore it. Code that needs a different
+    file passes an explicit path instead - see loading.load_train.
+    """
     train: Path = PROJECT_ROOT / "data" / "train_test.csv"
     validation: Path = PROJECT_ROOT / "data" / "validation.csv"
     december_inputs: Path = PROJECT_ROOT / "data" / "december_chart_inputs.csv"
@@ -28,9 +33,7 @@ class Paths:
     predictions: Path = PROJECT_ROOT / "validation_predictions.csv"
     december_predictions: Path = PROJECT_ROOT / "december_predictions.csv"
 
-    artifacts: Path = PROJECT_ROOT / "artifacts"
     figures: Path = PROJECT_ROOT / "reports" / "figures"
-    scorer_results: Path = PROJECT_ROOT / "scorer_results"
 
 
 @dataclass(frozen=True)

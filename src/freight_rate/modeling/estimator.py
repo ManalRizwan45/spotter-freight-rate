@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
 
-from ..config import CONFIG, ModelParams
+from ..config import CONFIG
 from ..features import DateEncoding
 from ..features import build as build_features
 from . import target
@@ -23,12 +23,10 @@ class RateModel:
     accidentally disagree about how a date is represented.
     """
 
-    def __init__(self, encoding: DateEncoding, market_levels: pd.Series | None = None,
-                 params: ModelParams | None = None) -> None:
+    def __init__(self, encoding: DateEncoding, market_levels: pd.Series | None = None) -> None:
         self.encoding = encoding
         self.market_levels = market_levels
-        self.params = params or CONFIG.model
-        self._model = HistGradientBoostingRegressor(**self.params.as_kwargs())
+        self._model = HistGradientBoostingRegressor(**CONFIG.model.as_kwargs())
         self._feature_names: list[str] | None = None
 
     def _matrix(self, frame: pd.DataFrame) -> pd.DataFrame:

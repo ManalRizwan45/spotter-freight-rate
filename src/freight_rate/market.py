@@ -30,8 +30,3 @@ def daily_levels(*frames: pd.DataFrame) -> pd.Series:
     levels = stacked.dropna().groupby("date")["market_index"].mean()
     levels.name = "daily_market_level"
     return levels
-
-
-def coverage_gaps(levels: pd.Series, dates: pd.Series) -> list[pd.Timestamp]:
-    """Dates in `dates` that `levels` cannot supply. Empty list means full coverage."""
-    return sorted(set(pd.to_datetime(dates)) - set(levels.index))

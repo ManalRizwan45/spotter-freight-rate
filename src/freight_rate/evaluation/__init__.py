@@ -1,4 +1,5 @@
-"""Metrics and figures."""
-from .metrics import Scores, evaluate, evaluate_splits, summarise
+"""Metrics and figures.
 
-__all__ = ["Scores", "evaluate", "evaluate_splits", "summarise"]
+Import the submodules directly - `from .evaluation import charts, metrics`. Nothing is
+re-exported here, since no caller wanted the flatter names.
+"""
