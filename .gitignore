@@ -1,0 +1,27 @@
+### Spotter-supplied assessment materials — deliberately not published.
+# Reviewers already hold these. Keeping them out avoids redistributing the
+# datasets and instructions. See the "Data" section of README.md.
+data/
+Freight_Rate_ML_Assessment.pdf
+
+### Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+### Run output
+# Deliverables (validation_predictions.csv, december_predictions.csv,
+# reports/figures/) are committed deliberately.
+artifacts/
+scorer_results/
+
+.DS_Store
+Thumbs.db
