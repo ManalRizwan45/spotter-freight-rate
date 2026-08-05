@@ -31,10 +31,18 @@ def _read(path: Path, expected: list[str], label: str) -> pd.DataFrame:
         raise FileNotFoundError(
             f"{label} not found at {path}. The data/ directory ships with the assessment."
         )
-    frame = pd.read_csv(path, parse_dates=["date"])
+    # Validation runs before date parsing, not after. Passing parse_dates= to read_csv
+    # would make a missing 'date' column raise pandas' own ValueError from inside
+    # read_csv, bypassing SchemaError - the one column whose absence would escape a
+    # caller's `except SchemaError`. Parsing afterwards keeps every missing column
+    # reported the same way.
+    frame = pd.read_csv(path)
     missing = [column for column in expected if column not in frame.columns]
     if missing:
         raise SchemaError(f"{label} is missing expected columns: {missing}")
+
+    # Guaranteed present: 'date' is in every expected-column list above.
+    frame["date"] = pd.to_datetime(frame["date"])
     return frame
 
 
