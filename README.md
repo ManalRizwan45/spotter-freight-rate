@@ -56,6 +56,17 @@ Tests and lint:
 python -m pytest && python -m ruff check src tests
 ```
 
+## Exploratory analysis
+
+[`notebooks/01_exploration.ipynb`](notebooks/01_exploration.ipynb) is committed with all
+outputs and figures embedded, so it reads without executing. It reads from
+`src/freight_rate/` rather than reimplementing anything, so it cannot drift from the
+pipeline. To re-run it:
+
+```bash
+python -m pip install -e ".[notebooks]"
+```
+
 ## Approach
 
 **The target is a correction, not a rate.** `distance × quote_signal` already lands
