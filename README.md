@@ -168,8 +168,19 @@ tests/            44 tests, including a scorer-contract guard
 - **Config in Python, not YAML.** At ~15 parameters a config file costs a parser and a
   dependency while giving up type checking; frozen dataclasses keep it typed and
   navigable.
-- **`HistGradientBoostingRegressor`.** Handles NaN natively (missing `weight` carries
-  signal), trains 48,000 rows in seconds, needs no scaling or one-hot expansion.
+- **`HistGradientBoostingRegressor`, chosen on the December chart rather than on MAE.**
+  Benchmarked under forward chaining against the quote alone, a mean predictor, Ridge,
+  and RandomForest. RandomForest is genuinely better in-range, $135.50 MAE against
+  $146.27, consistent across all three folds. It was rejected anyway: on the December
+  rows, where every input except the date is frozen, it yields a curve spanning $8.67
+  that correlates **-0.192** with the actual December market level, against $31.18 and
+  **+0.679** for boosting. Averaging 200 deep trees damps the response to any single
+  feature, which is precisely what the chart exists to detect. Boosting sums shallow
+  corrections and stays sensitive to `daily_market_level`. A 7% MAE gain is not worth a
+  chart that ignores the market.
+
+  The obvious reason to reach for this estimator, native `NaN` handling, turns out to be
+  worth nothing here: imputing the missing weights instead measures -0.41 ± 0.47.
 - **Leakage boundary.** Cleaning learns nothing from the data: every repair is a pure
   transform, so there is no fitted quantity that could carry training information into
   the prediction window. The daily market level does read the `market_index` *feature*
