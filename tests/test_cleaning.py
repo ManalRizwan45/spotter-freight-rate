@@ -58,7 +58,7 @@ def test_that_gap_fails_loudly_downstream(sample_loads):
 
     levels = market.daily_levels(cleaned)
     with pytest.raises(ValueError, match="no market level"):
-        temporal.build_cyclical(cleaned["date"], levels)
+        temporal.build_recurring(cleaned["date"], levels)
 
 
 def test_clean_does_not_mutate_input(sample_loads):

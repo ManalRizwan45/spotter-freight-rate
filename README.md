@@ -82,20 +82,20 @@ wrong:
 
 | Strategy | MAE | RMSE | MAPE | median APE |
 |---|---|---|---|---|
-| Forward chaining (honest) | $147.43 | $641.00 | 6.55% | 3.20% |
-| Random k-fold (optimistic) | $109.41 | $594.03 | 4.97% | 1.98% |
+| Forward chaining (honest) | $146.27 | $640.28 | 6.48% | 3.13% |
+| Random k-fold (optimistic) | $109.40 | $594.02 | 4.96% | 1.98% |
 
-Random k-fold understates MAE by **34.7%**.
+Random k-fold understates MAE by **33.7%**.
 
 **Dates are encoded so they extrapolate.** Training ends 2025-10-31; the chart asks for
 December. A `date_ordinal` or `month` feature falls beyond every learned split, so a
-tree clamps it and the chart flatlines. Day-of-week (cyclical) and the looked-up daily
+tree clamps it and the chart flatlines. Day-of-week, day-of-month and the looked-up daily
 market level both exist in December.
 
 | Encoding | MAE under forward chaining |
 |---|---|
 | Ordinal (`date_ordinal` + `month`) | $204.12 |
-| Cyclical (day-of-week + market level) | **$147.43** |
+| Recurring (day-of-week + market level) | **$146.27** |
 
 **Cities are never encoded by name.** Eight of them (Allentown, Charlotte, Chicago,
 Jackson, Knoxville, Laredo, Norfolk, San Diego) appear only in `validation.csv`.
@@ -115,11 +115,12 @@ Holding everything except the date frozen:
 |---|---|---|---|
 | Global mean | Ordinal | **$0.00** | **1** |
 | Recovered daily level | Ordinal | $22.99 | 17 |
-| Recovered daily level | Cyclical | $26.73 | **30** |
+| Recovered daily level | Recurring | $31.18 | **31** |
 
 The top row is the failure the chart is built to expose: one value repeated across the
 whole month. The middle row moves, but resolves only 17 of 31 days, because an ordinal
-date encoding cannot separate days that fall beyond the training horizon. Recovering
+date encoding cannot separate days that fall beyond the training horizon. The bottom
+row gives all 31 days a distinct value. Recovering
 the daily market level is necessary but not sufficient; the date encoding has to be
 able to use it.
 

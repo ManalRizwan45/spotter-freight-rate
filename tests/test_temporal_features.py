@@ -6,7 +6,6 @@ construction, which is why the December chart flattens.
 """
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -24,35 +23,35 @@ def test_ordinal_encoding_leaves_the_training_range(sample_loads, december_rows)
     assert december["month"].min() > train["month"].max()
 
 
-def test_cyclical_encoding_stays_inside_the_training_range(
+def test_recurring_encoding_stays_inside_the_training_range(
     sample_loads, december_rows, market_levels
 ):
     levels = pd.concat([
         market_levels,
         pd.Series(1.0, index=pd.DatetimeIndex(december_rows["date"])),
     ])
-    train = temporal.build_cyclical(sample_loads["date"], levels)
-    december = temporal.build_cyclical(december_rows["date"], levels)
+    train = temporal.build_recurring(sample_loads["date"], levels)
+    december = temporal.build_recurring(december_rows["date"], levels)
 
-    for column in ["dow_sin", "dow_cos", "day_of_month"]:
+    for column in ["day_of_week", "day_of_month"]:
         assert december[column].min() >= train[column].min()
         assert december[column].max() <= train[column].max()
 
 
 def test_dates_seven_days_apart_encode_identically():
+    """The weekly term must repeat, which is what carries it into December."""
     dates = pd.Series(pd.to_datetime(["2025-12-01", "2025-12-08"]))
     levels = pd.Series(1.0, index=pd.DatetimeIndex(dates))
-    encoded = temporal.build_cyclical(dates, levels)
-    assert np.isclose(encoded["dow_sin"].iloc[0], encoded["dow_sin"].iloc[1])
-    assert np.isclose(encoded["dow_cos"].iloc[0], encoded["dow_cos"].iloc[1])
+    encoded = temporal.build_recurring(dates, levels)
+    assert encoded["day_of_week"].iloc[0] == encoded["day_of_week"].iloc[1]
 
 
 def test_missing_market_level_raises_rather_than_emitting_nan(december_rows):
     empty = pd.Series(dtype=float, index=pd.DatetimeIndex([]))
     with pytest.raises(ValueError, match="no market level"):
-        temporal.build_cyclical(december_rows["date"], empty)
+        temporal.build_recurring(december_rows["date"], empty)
 
 
-def test_cyclical_requires_market_levels(sample_loads):
+def test_recurring_requires_market_levels(sample_loads):
     with pytest.raises(ValueError, match="requires market_levels"):
-        temporal.build(sample_loads["date"], DateEncoding.CYCLICAL, None)
+        temporal.build(sample_loads["date"], DateEncoding.RECURRING, None)

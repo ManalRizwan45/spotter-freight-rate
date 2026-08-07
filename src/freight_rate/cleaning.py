@@ -7,13 +7,13 @@ Issues addressed, with counts from the supplied files:
                        so these read as sign errors rather than corrupt records.
   missing weight       300 / 165. Left as NaN: HistGradientBoosting splits on
                        missingness natively, which beats imputing a value the model
-                       then cannot distinguish from a real one. A flag is added anyway.
+                       then cannot distinguish from a real one.
   missing market_index 374 / 249. Filled from the same date's mean, because 97.8% of
                        the column's variance is explained by date alone.
 
 Nothing is learned from the data, so there is no fit/apply pair - every repair is a
 pure transform. A date with no market_index at all stays NaN and fails in
-features.temporal.build_cyclical, which names it.
+features.temporal.build_recurring, which names it.
 """
 from __future__ import annotations
 

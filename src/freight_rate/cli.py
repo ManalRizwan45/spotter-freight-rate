@@ -29,8 +29,8 @@ DECEMBER_SCENARIOS = [
      "1. Constant market input\n     + ordinal date encoding"),
     (False, DateEncoding.ORDINAL, "#B26A00",
      "2. Recovered daily market level\n     + ordinal date encoding"),
-    (False, DateEncoding.CYCLICAL, "#064A56",
-     "3. Recovered daily market level\n     + cyclical date encoding"),
+    (False, DateEncoding.RECURRING, "#064A56",
+     "3. Recovered daily market level\n     + recurring date encoding"),
 ]
 
 
@@ -47,7 +47,7 @@ class Pipeline:
         validation = cleaning.clean(loading.load_validation())
         return cls(train, validation, market.daily_levels(train, validation))
 
-    def model(self, encoding: DateEncoding = DateEncoding.CYCLICAL) -> RateModel:
+    def model(self, encoding: DateEncoding = DateEncoding.RECURRING) -> RateModel:
         return RateModel(encoding, self.market_levels)
 
 
@@ -88,7 +88,7 @@ def run_validate(pipeline: Pipeline) -> None:
     )
     comparison = pd.concat([
         metrics.summarise(ordinal, "ordinal (date_ordinal + month)"),
-        metrics.summarise(forward, "cyclical (day-of-week + market level)"),
+        metrics.summarise(forward, "recurring (day-of-week + market level)"),
     ], ignore_index=True)
     print(comparison.to_string(index=False))
     penalty = comparison.loc[0, "MAE"] / comparison.loc[1, "MAE"] - 1
