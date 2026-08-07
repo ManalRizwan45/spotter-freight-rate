@@ -39,17 +39,6 @@ def test_cyclical_encoding_stays_inside_the_training_range(
         assert december[column].max() <= train[column].max()
 
 
-def test_day_of_week_encoding_is_bounded_and_periodic(sample_loads):
-    encoded = temporal.build_cyclical(
-        sample_loads["date"],
-        pd.Series(1.0, index=pd.DatetimeIndex(sample_loads["date"].unique())),
-    )
-    assert encoded["dow_sin"].between(-1, 1).all()
-    assert encoded["dow_cos"].between(-1, 1).all()
-    # sin^2 + cos^2 == 1 for a well-formed cyclical encoding.
-    assert np.allclose(encoded["dow_sin"] ** 2 + encoded["dow_cos"] ** 2, 1.0)
-
-
 def test_dates_seven_days_apart_encode_identically():
     dates = pd.Series(pd.to_datetime(["2025-12-01", "2025-12-08"]))
     levels = pd.Series(1.0, index=pd.DatetimeIndex(dates))

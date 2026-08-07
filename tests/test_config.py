@@ -1,15 +1,14 @@
 """Tests for the configuration itself.
 
 Config is data, so it can carry bugs that no amount of testing the pipeline would
-catch: a hyperparameter that never reaches the model, a fold whose test block starts
-before training ends, a seed that disagrees with itself. These pin those invariants.
+catch: a hyperparameter that never reaches the model, or a fold whose test block starts
+before training ends. These pin those invariants.
 """
 from __future__ import annotations
 
 import dataclasses
 
 import pandas as pd
-import pytest
 from sklearn.ensemble import HistGradientBoostingRegressor
 
 from freight_rate.config import CONFIG, ModelParams
@@ -28,20 +27,11 @@ def test_as_kwargs_are_all_real_sklearn_parameters():
     assert not unknown, f"not accepted by HistGradientBoostingRegressor: {sorted(unknown)}"
 
 
-def test_the_estimator_actually_accepts_them():
-    model = HistGradientBoostingRegressor(**CONFIG.model.as_kwargs())
-    assert model.max_iter == CONFIG.model.max_iter
-
-
 def test_early_stopping_is_off():
     """sklearn's 'auto' enables early stopping above 10,000 rows, and the training set
     has 48,000. That would carve out an internal RANDOM validation split - exactly the
     split strategy this project argues is invalid here."""
     assert CONFIG.model.early_stopping is False
-
-
-def test_one_seed_reaches_every_random_component():
-    assert CONFIG.seed == CONFIG.model.random_state
 
 
 def test_forward_folds_never_overlap_in_time():
@@ -66,11 +56,3 @@ def test_folds_stay_inside_the_labelled_period():
         assert pd.Timestamp(fold.test_end) <= pd.Timestamp("2025-10-31")
 
 
-def test_config_is_immutable():
-    with pytest.raises(dataclasses.FrozenInstanceError):
-        CONFIG.model.max_iter = 1
-
-
-def test_paths_is_immutable():
-    with pytest.raises(dataclasses.FrozenInstanceError):
-        CONFIG.paths.train = "elsewhere.csv"

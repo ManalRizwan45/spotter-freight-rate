@@ -149,7 +149,7 @@ src/freight_rate/
   evaluation/     metrics and figures
   december.py     reconstructing the chart file's missing columns
   cli.py          entry point
-tests/            52 tests, including a scorer-contract guard
+tests/            44 tests, including a scorer-contract guard
 ```
 
 `score.py`, `data/` and `requirements.txt` are supplied by the assessment and unmodified.

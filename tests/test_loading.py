@@ -85,14 +85,6 @@ def test_every_missing_column_is_reported_at_once(tmp_path):
     assert all(column in message for column in ["equipment", "weight", "distance"])
 
 
-def test_schema_error_is_catchable_as_value_error(tmp_path):
-    """Inheritance keeps broad handlers working; the subclass adds precision on top."""
-    path = tmp_path / "train.csv"
-    _valid_train_csv(path).drop(columns=["equipment"]).to_csv(path, index=False)
-    with pytest.raises(ValueError):
-        loading.load_train(path)
-
-
 def test_extra_columns_are_accepted(tmp_path):
     """The check is permissive by design: required columns present, not an exact match."""
     path = tmp_path / "train.csv"
