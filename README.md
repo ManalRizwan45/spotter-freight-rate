@@ -82,10 +82,10 @@ wrong:
 
 | Strategy | MAE | RMSE | MAPE | median APE |
 |---|---|---|---|---|
-| Forward chaining (honest) | $147.34 | $640.86 | 6.54% | 3.17% |
-| Random k-fold (optimistic) | $110.27 | $594.06 | 5.01% | 2.02% |
+| Forward chaining (honest) | $147.43 | $641.00 | 6.55% | 3.20% |
+| Random k-fold (optimistic) | $109.41 | $594.03 | 4.97% | 1.98% |
 
-Random k-fold understates MAE by **33.6%**.
+Random k-fold understates MAE by **34.7%**.
 
 **Dates are encoded so they extrapolate.** Training ends 2025-10-31; the chart asks for
 December. A `date_ordinal` or `month` feature falls beyond every learned split, so a
@@ -94,12 +94,12 @@ market level both exist in December.
 
 | Encoding | MAE under forward chaining |
 |---|---|
-| Ordinal (`date_ordinal` + `month`) | $201.03 |
-| Cyclical (day-of-week + market level) | **$147.34** |
+| Ordinal (`date_ordinal` + `month`) | $204.12 |
+| Cyclical (day-of-week + market level) | **$147.43** |
 
 **Cities are never encoded by name.** Eight of them (Allentown, Charlotte, Chicago,
 Jackson, Knoxville, Laredo, Norfolk, San Diego) appear only in `validation.csv`.
-Geography comes from coordinates, haversine and bearing, which cover unseen cities.
+Geography comes from coordinates and haversine, which cover unseen cities.
 
 ## The December chart
 
@@ -111,17 +111,22 @@ daily level to ±0.002. `validation.csv` covers all 31 December days.
 
 Holding everything except the date frozen:
 
-| Market input | Date encoding | Range across the month | Distinct values | Correlation with actual market level |
-|---|---|---|---|---|
-| Global mean | Ordinal | **$0.00** | 1 / 31 | n/a |
-| Recovered daily level | Ordinal | $7.18 | 11 / 31 | +0.349 |
-| Recovered daily level | Cyclical | $19.77 | 30 / 31 | **+0.672** |
+| Market input | Date encoding | Range across the month | Distinct values in 31 days |
+|---|---|---|---|
+| Global mean | Ordinal | **$0.00** | **1** |
+| Recovered daily level | Ordinal | $22.99 | 17 |
+| Recovered daily level | Cyclical | $26.73 | **30** |
 
-The middle row is the trap: it moves just enough to pass a glance, but across 31 days it
-produces only 11 distinct values and tracks the market at half the strength of the
-cyclical encoding. Recovering the daily level is not enough on its own; the date
-encoding has to be able to use it. Figure:
-`reports/figures/december_encoding_comparison.png`.
+The top row is the failure the chart is built to expose: one value repeated across the
+whole month. The middle row moves, but resolves only 17 of 31 days, because an ordinal
+date encoding cannot separate days that fall beyond the training horizon. Recovering
+the daily market level is necessary but not sufficient; the date encoding has to be
+able to use it.
+
+Correlation against the true December market level is deliberately not quoted here.
+For the middle row it has flipped sign across feature configurations, so it is not a
+stable quantity. The distinct-value counts are, and they order the three scenarios
+the same way every time. Figure: `reports/figures/december_encoding_comparison.png`.
 
 ## Data-quality issues addressed
 
@@ -142,7 +147,7 @@ src/freight_rate/
   cleaning.py     sign errors and gaps, as pure transforms with nothing learned
   market.py       daily market level recovery
   features/
-    geography.py  haversine, bearing, city coordinate lookup
+    geography.py  haversine and the city coordinate lookup
     temporal.py   the two date encodings, where the chart is won or lost
     assembly.py   composition into the model matrix
   modeling/
