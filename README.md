@@ -1,11 +1,11 @@
-# Freight Rate Prediction — Spotter ML Assessment
+# Freight Rate Prediction: Spotter ML Assessment
 
 Predicts `posted_rate` for 12,000 held-out freight loads, and produces the fixed
 December chart.
 
 ## Data
 
-The Spotter-supplied datasets and the assessment PDF are **not committed** — they are
+The Spotter-supplied datasets and the assessment PDF are **not committed**: they are
 gitignored so this repository does not redistribute assessment materials. To run the
 pipeline, place the supplied files as:
 
@@ -70,7 +70,7 @@ python -m pip install -e ".[notebooks]"
 ## Approach
 
 **The target is a correction, not a rate.** `distance × quote_signal` already lands
-within 2% of the actual rate on half the training rows — a 2.0% median error with no
+within 2% of the actual rate on half the training rows, a 2.0% median error with no
 model at all. The model predicts `log(posted_rate / (distance × quote_signal))`, so it
 only learns the deviation. The log keeps the ~0.7% of rows above $4/mile from
 dominating a squared-error loss.
@@ -97,14 +97,14 @@ market level both exist in December.
 | Ordinal (`date_ordinal` + `month`) | $199.51 |
 | Cyclical (day-of-week + market level) | **$147.59** |
 
-**Cities are never encoded by name.** Eight — Allentown, Charlotte, Chicago, Jackson,
-Knoxville, Laredo, Norfolk, San Diego — appear only in `validation.csv`. Geography comes
-from coordinates, haversine and bearing, which cover unseen cities.
+**Cities are never encoded by name.** Eight of them (Allentown, Charlotte, Chicago,
+Jackson, Knoxville, Laredo, Norfolk, San Diego) appear only in `validation.csv`.
+Geography comes from coordinates, haversine and bearing, which cover unseen cities.
 
 ## The December chart
 
 `december_chart_inputs.csv` ships without `market_index`, `quote_signal` or coordinates,
-so each is reconstructed — see [`src/freight_rate/december.py`](src/freight_rate/december.py).
+so each is reconstructed. See [`src/freight_rate/december.py`](src/freight_rate/december.py).
 The key one: `market_index` looks per-load, but **97.8% of its variance is explained by
 date alone**. Averaging a date's ~157 loads cancels the per-load noise and recovers the
 daily level to ±0.002. `validation.csv` covers all 31 December days.
@@ -113,7 +113,7 @@ Holding everything except the date frozen:
 
 | Market input | Date encoding | Range across the month | Distinct values | Correlation with actual market level |
 |---|---|---|---|---|
-| Global mean | Ordinal | **$0.00** | 1 / 31 | — |
+| Global mean | Ordinal | **$0.00** | 1 / 31 | n/a |
 | Recovered daily level | Ordinal | $9.03 | 12 / 31 | **−0.345** |
 | Recovered daily level | Cyclical | $26.00 | 30 / 31 | **+0.687** |
 
@@ -124,7 +124,7 @@ with the December market. Figure: `reports/figures/december_encoding_comparison.
 
 | Issue | Counts (train / validation) | Handling |
 |---|---|---|
-| Negative `weight` | 292 / 145 | Sign errors — magnitudes are plausible, so `abs()` and flag |
+| Negative `weight` | 292 / 145 | Sign errors: magnitudes are plausible, so `abs()` and flag |
 | Missing `weight` | 300 / 165 | Left as NaN; the model splits on missingness natively |
 | Missing `market_index` | 374 / 249 | Filled from the same date's mean |
 | Rate outliers | ~0.7% above $4/mile | Kept; the log-ratio target contains them |
@@ -134,13 +134,13 @@ with the December market. Figure: `reports/figures/december_encoding_comparison.
 
 ```
 src/freight_rate/
-  config.py       frozen dataclasses — paths, folds, model params, seed
+  config.py       frozen dataclasses: paths, folds, model params, seed
   loading.py      CSV reads with schema enforcement
-  cleaning.py     sign errors and gaps — pure transforms, nothing learned
+  cleaning.py     sign errors and gaps, as pure transforms with nothing learned
   market.py       daily market level recovery
   features/
     geography.py  haversine, bearing, city coordinate lookup
-    temporal.py   the two date encodings — where the chart is won or lost
+    temporal.py   the two date encodings, where the chart is won or lost
     assembly.py   composition into the model matrix
   modeling/
     target.py     log-ratio transform and its inverse
@@ -149,7 +149,7 @@ src/freight_rate/
   evaluation/     metrics and figures
   december.py     reconstructing the chart file's missing columns
   cli.py          entry point
-tests/            31 tests, including a scorer-contract guard
+tests/            52 tests, including a scorer-contract guard
 ```
 
 `score.py`, `data/` and `requirements.txt` are supplied by the assessment and unmodified.
@@ -161,10 +161,10 @@ tests/            31 tests, including a scorer-contract guard
   navigable.
 - **`HistGradientBoostingRegressor`.** Handles NaN natively (missing `weight` carries
   signal), trains 48,000 rows in seconds, needs no scaling or one-hot expansion.
-- **Leakage boundary.** Cleaning learns nothing from the data — every repair is a pure
+- **Leakage boundary.** Cleaning learns nothing from the data: every repair is a pure
   transform, so there is no fitted quantity that could carry training information into
   the prediction window. The daily market level does read the `market_index` *feature*
-  column — never `posted_rate` — across both train and validation, because the
+  column (never `posted_rate`) across both train and validation, because the
   assessment supplies it for the prediction window. That judgment call is called out
   here and in the report.
 - **`tests/test_scorer_contract.py`** asserts the output satisfies every rule in
