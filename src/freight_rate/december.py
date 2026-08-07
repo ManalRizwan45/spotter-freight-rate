@@ -80,7 +80,4 @@ def prepare(december: pd.DataFrame, train: pd.DataFrame, validation: pd.DataFram
             raise ValueError(f"no market level for December dates: {gaps}")
         frame["market_index"] = level
 
-    # The chart rows are synthetic and complete, so the cleaning flags are constant.
-    frame["weight_missing"] = 0
-    frame["weight_was_negative"] = 0
     return frame

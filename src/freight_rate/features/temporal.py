@@ -19,11 +19,11 @@ CYCLICAL (safe)
 Measured on the 31 fixed-input December rows, with everything except the date frozen:
 
     constant market input  + ordinal    range $0.00   1 distinct value  in 31 days
-    recovered daily level  + ordinal    range $9.03  12 distinct values, corr -0.345
-    recovered daily level  + cyclical   range $26.00 30 distinct values, corr +0.687
+    recovered daily level  + ordinal    range $7.18  11 distinct values, corr +0.349
+    recovered daily level  + cyclical   range $19.77 30 distinct values, corr +0.672
 
-The middle row is the trap: it moves, so it looks fixed, but it is anti-correlated with
-the actual December market level.
+The middle row is the trap: it moves, so it looks fixed, but it manages only 11 distinct
+values and tracks the market at half the strength of the cyclical encoding.
 """
 from __future__ import annotations
 

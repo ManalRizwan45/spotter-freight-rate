@@ -24,10 +24,7 @@ def clean(frame: pd.DataFrame) -> pd.DataFrame:
     """Return a repaired copy. The input frame is never modified."""
     out = frame.copy()
 
-    # Flag before fixing: once the sign is corrected the evidence is gone.
-    out["weight_was_negative"] = (out["weight"] < 0).astype(int)
     out["weight"] = out["weight"].abs()
-    out["weight_missing"] = out["weight"].isna().astype(int)
 
     # A row's own date group is available at prediction time, so this is not leakage.
     same_day_mean = out.groupby("date")["market_index"].transform("mean")

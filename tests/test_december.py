@@ -20,7 +20,7 @@ def test_prepare_resolves_every_required_column(sample_loads, december_rows):
 
     required = [
         "pickup_lat", "pickup_lon", "delivery_lat", "delivery_lon",
-        "quote_signal", "market_index", "weight_missing", "weight_was_negative",
+        "quote_signal", "market_index",
     ]
     for column in required:
         assert column in prepared, f"missing {column}"

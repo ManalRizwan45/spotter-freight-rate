@@ -8,22 +8,19 @@ from freight_rate import cleaning
 from freight_rate.features import temporal
 
 
-def test_negative_weights_are_corrected_and_flagged(sample_loads):
+def test_negative_weights_are_corrected(sample_loads):
     cleaned = cleaning.clean(sample_loads)
 
     assert (cleaned["weight"].dropna() >= 0).all()
-    assert cleaned["weight_was_negative"].sum() == 3
     # The magnitude must survive the sign fix.
     pd.testing.assert_series_equal(
         cleaned["weight"], sample_loads["weight"].abs(), check_names=False
     )
 
 
-def test_missing_weight_is_flagged_but_left_missing(sample_loads):
+def test_missing_weight_is_left_missing(sample_loads):
+    """Deliberately not imputed: the model splits on missingness natively."""
     cleaned = cleaning.clean(sample_loads)
-
-    assert cleaned["weight_missing"].sum() == 3
-    # Deliberately not imputed: the model splits on missingness natively.
     assert cleaned["weight"].isna().sum() == 3
 
 

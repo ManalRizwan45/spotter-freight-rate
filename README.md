@@ -82,10 +82,10 @@ wrong:
 
 | Strategy | MAE | RMSE | MAPE | median APE |
 |---|---|---|---|---|
-| Forward chaining (honest) | $147.59 | $641.24 | 6.54% | 3.19% |
-| Random k-fold (optimistic) | $110.25 | $594.16 | 5.00% | 2.01% |
+| Forward chaining (honest) | $147.34 | $640.86 | 6.54% | 3.17% |
+| Random k-fold (optimistic) | $110.27 | $594.06 | 5.01% | 2.02% |
 
-Random k-fold understates MAE by **33.9%**.
+Random k-fold understates MAE by **33.6%**.
 
 **Dates are encoded so they extrapolate.** Training ends 2025-10-31; the chart asks for
 December. A `date_ordinal` or `month` feature falls beyond every learned split, so a
@@ -94,8 +94,8 @@ market level both exist in December.
 
 | Encoding | MAE under forward chaining |
 |---|---|
-| Ordinal (`date_ordinal` + `month`) | $199.51 |
-| Cyclical (day-of-week + market level) | **$147.59** |
+| Ordinal (`date_ordinal` + `month`) | $201.03 |
+| Cyclical (day-of-week + market level) | **$147.34** |
 
 **Cities are never encoded by name.** Eight of them (Allentown, Charlotte, Chicago,
 Jackson, Knoxville, Laredo, Norfolk, San Diego) appear only in `validation.csv`.
@@ -114,17 +114,20 @@ Holding everything except the date frozen:
 | Market input | Date encoding | Range across the month | Distinct values | Correlation with actual market level |
 |---|---|---|---|---|
 | Global mean | Ordinal | **$0.00** | 1 / 31 | n/a |
-| Recovered daily level | Ordinal | $9.03 | 12 / 31 | **−0.345** |
-| Recovered daily level | Cyclical | $26.00 | 30 / 31 | **+0.687** |
+| Recovered daily level | Ordinal | $7.18 | 11 / 31 | +0.349 |
+| Recovered daily level | Cyclical | $19.77 | 30 / 31 | **+0.672** |
 
-The middle row is the trap: it moves, so it passes a glance, but it is *anti-correlated*
-with the December market. Figure: `reports/figures/december_encoding_comparison.png`.
+The middle row is the trap: it moves just enough to pass a glance, but across 31 days it
+produces only 11 distinct values and tracks the market at half the strength of the
+cyclical encoding. Recovering the daily level is not enough on its own; the date
+encoding has to be able to use it. Figure:
+`reports/figures/december_encoding_comparison.png`.
 
 ## Data-quality issues addressed
 
 | Issue | Counts (train / validation) | Handling |
 |---|---|---|
-| Negative `weight` | 292 / 145 | Sign errors: magnitudes are plausible, so `abs()` and flag |
+| Negative `weight` | 292 / 145 | Sign errors: magnitudes match the positive rows at every quantile, so `abs()` |
 | Missing `weight` | 300 / 165 | Left as NaN; the model splits on missingness natively |
 | Missing `market_index` | 374 / 249 | Filled from the same date's mean |
 | Rate outliers | ~0.7% above $4/mile | Kept; the log-ratio target contains them |
