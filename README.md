@@ -188,11 +188,9 @@ tests/            44 tests, including a scorer-contract guard
   tracking and sits within 0.2 MAE of the best. Raising `max_iter` or `max_leaf_nodes`
   drops December correlation to +0.354 and +0.550 for no MAE gain. Also tested: XGBoost,
   classic GradientBoosting, KNeighbors, a mean predictor, and the quote alone.
-- **Leakage boundary.** Cleaning learns nothing from the data: every repair is a pure
-  transform, so there is no fitted quantity that could carry training information into
-  the prediction window. The daily market level does read the `market_index` *feature*
-  column (never `posted_rate`) across both train and validation, because the
-  assessment supplies it for the prediction window. That judgment call is called out
-  here and in the report.
+- **Leakage boundary.** The daily market level reads the `market_index` feature column
+  across both train and validation, never `posted_rate`, because the assessment supplies
+  that column for the prediction window. That is a judgment call, so it is stated rather
+  than assumed.
 - **`tests/test_scorer_contract.py`** asserts the output satisfies every rule in
   `score.py`. A format rejection scores zero regardless of model quality.
