@@ -168,26 +168,30 @@ tests/            44 tests, including a scorer-contract guard
 - **Config in Python, not YAML.** At ~15 parameters a config file costs a parser and a
   dependency while giving up type checking; frozen dataclasses keep it typed and
   navigable.
-- **`HistGradientBoostingRegressor`, chosen on the December chart rather than on MAE.**
-  Ten models were benchmarked under forward chaining, and the result splits by family:
+- **`HistGradientBoostingRegressor`, chosen because nothing dominates it on both
+  deliverables.** Ten models were benchmarked on in-range MAE under forward chaining.
+  Chart quality was judged separately, by rehearsing December on five held-out months:
+  train on everything prior, build the fixed-lane 31-day chart the same way, and
+  correlate its shape against what comparable loads actually cost that month.
 
-  | Model | MAE | Dec range | Dec corr with market |
-  |---|---|---|---|
-  | ExtraTrees | **129.57** | $12.32 | **-0.493** |
-  | RandomForest | 135.50 | $8.67 | **-0.192** |
-  | **HistGradientBoosting** | 146.27 | $31.18 | **+0.679** |
-  | LightGBM | 146.63 | $26.87 | +0.563 |
-  | ElasticNet | 175.84 | $36.45 | **+0.890** |
+  | Model | MAE | Chart shape vs real prices |
+  |---|---|---|
+  | ExtraTrees | **129.57** | +0.04 |
+  | RandomForest | 135.50 | +0.30 |
+  | **HistGradientBoosting** | 146.27 | +0.24 |
+  | LightGBM | 146.63 | +0.26 |
+  | ElasticNet | 175.84 | **+0.44** |
 
-  Bagging wins in-range and inverts on December: averaging deep trees damps the response
-  to any single feature, which is exactly what the chart exists to detect. Boosting keeps
-  adding corrections and stays sensitive to `daily_market_level`. ElasticNet is the
-  limiting case, extrapolating almost perfectly and fitting worst.
+  ElasticNet tracks the chart best and pays 20% on MAE. ExtraTrees wins MAE and has
+  effectively no chart signal. The middle three are not separable on chart shape: across
+  the five months each model's score swings by 0.5 or more, so the choice among them
+  rests on MAE and on needing no extra dependency.
 
-  Among models clearing both bars, the current configuration has the best December
-  tracking and sits within 0.2 MAE of the best. Raising `max_iter` or `max_leaf_nodes`
-  drops December correlation to +0.354 and +0.550 for no MAE gain. Also tested: XGBoost,
-  classic GradientBoosting, KNeighbors, a mean predictor, and the quote alone.
+  Chart shape is scored against real prices rather than against the recovered market
+  level. Those two rank models differently, and only the first is ground truth. Months
+  are weighted by their own split-half reliability, since a month whose daily medians do
+  not replicate (October scores 0.045) offers nothing to match. Also tested: XGBoost,
+  classic GradientBoosting, KNeighbors, Ridge, a mean predictor, and the quote alone.
 - **Leakage boundary.** The daily market level reads the `market_index` feature column
   across both train and validation, never `posted_rate`, because the assessment supplies
   that column for the prediction window. That is a judgment call, so it is stated rather
