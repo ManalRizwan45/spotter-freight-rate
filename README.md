@@ -86,10 +86,10 @@ wrong:
 
 | Strategy | MAE | RMSE | MAPE | median APE |
 |---|---|---|---|---|
-| Forward chaining (honest) | $135.50 | $639.45 | 5.82% | 2.43% |
-| Random k-fold (optimistic) | $98.62 | $592.91 | 4.46% | 1.47% |
+| Forward chaining (honest) | $134.13 | $638.47 | 5.79% | 2.43% |
+| Random k-fold (optimistic) | $97.83 | $592.37 | 4.44% | 1.46% |
 
-Random k-fold understates MAE by **37.4%**. It is reported here as a measured
+Random k-fold understates MAE by **37.1%**. It is reported here as a measured
 counterexample and is never used to select or score anything.
 
 **Dates are encoded so they extrapolate.** Training ends 2025-10-31; the chart asks for
@@ -99,8 +99,8 @@ market level all recur, so December lands inside the learned range.
 
 | Encoding | MAE under forward chaining |
 |---|---|
-| Ordinal (`date_ordinal` + `month`) | $199.39 |
-| Recurring (day-of-week + market level) | **$135.50** |
+| Ordinal (`date_ordinal` + `month`) | $199.29 |
+| Recurring (day-of-week + market level) | **$134.13** |
 
 **Cities are never encoded by name.** Eight of them (Allentown, Charlotte, Chicago,
 Jackson, Knoxville, Laredo, Norfolk, San Diego) appear only in `validation.csv`.
@@ -119,12 +119,12 @@ Holding everything except the date frozen:
 | Market input | Date encoding | Range across the month | Distinct values in 31 days |
 |---|---|---|---|
 | Global mean | Ordinal | **$0.00** | **1** |
-| Recovered daily level | Ordinal | $3.45 | 12 |
-| Recovered daily level | Recurring | $8.67 | **31** |
+| Recovered daily level | Ordinal | $4.06 | 10 |
+| Recovered daily level | Recurring | $9.01 | **31** |
 
 Recovering the daily market level is necessary but not sufficient. The top row is the
 failure the chart exposes: one value all month. The middle row moves but resolves only
-12 of 31 days, because an ordinal encoding cannot separate dates beyond the training
+10 of 31 days, because an ordinal encoding cannot separate dates beyond the training
 horizon. Only the bottom row gives all 31 days a distinct value.
 
 The dollar ranges are small because the chart freezes `quote_signal`, which carries 85%
@@ -182,39 +182,42 @@ tests/            44 tests, including a scorer-contract guard
 
   | Model | MAE | Chart shape vs real prices |
   |---|---|---|
-  | ExtraTrees | **129.57** | +0.038 |
-  | **RandomForest** | 135.50 | +0.298 |
-  | HistGradientBoosting | 145.86 | +0.295 |
-  | LightGBM | 147.18 | +0.267 |
-  | ElasticNet | 175.84 | **+0.435** |
+  | ExtraTrees | **128.91** | +0.153 |
+  | **RandomForest** | 134.13 | +0.304 |
+  | HistGradientBoosting | 145.29 | +0.074 |
+  | LightGBM | 146.48 | +0.250 |
+  | ElasticNet | 151.90 | **+0.435** |
 
   **Against boosting the margin is decisive.** Paired per load, RandomForest beats
-  HistGradientBoosting by $10.38 +/-0.87, the same sign in all three folds.
+  HistGradientBoosting by $11.17 +/-0.89, the same sign in all three folds.
 
-  **ExtraTrees has the lower pooled MAE**, by $5.93 +/-0.70, but the sign varies by fold
-  (-12.35, +1.13, -6.56). An edge that reverses on one of three time blocks will not
+  **ExtraTrees has the lower pooled MAE**, by $5.23 +/-0.73, but the sign varies by fold
+  (-11.95, +2.26, -5.99). An edge that reverses on one of three time blocks will not
   carry into an unseen month.
 
-  **ElasticNet leads the chart column** and pays 30% on MAE. It is the only candidate
+  **ElasticNet leads the chart column** and pays 13% on MAE. It is the only candidate
   that extrapolates past the training horizon, so both the lead and the cost are real.
 
-  **The chart column does not separate the boosting and bagging candidates**: 0.298
-  against 0.295, and each model's per-month score swings by 0.5 or more across the five
-  rehearsal months. MAE is what decides between them.
+  **The chart column is unstable and is not what decides this.** Switching equipment from
+  an integer code to indicators, a change about a different feature entirely, moved
+  HistGradientBoosting's score from +0.295 to +0.074 while its MAE barely moved. Per-month
+  scores swing by half a point or more across the five rehearsal months. A column that
+  reorders under an unrelated edit cannot carry a model decision, so MAE does.
 
   Chart shape is measured by rehearsing December on five held-out months: train on
   everything prior, build the fixed-lane chart the same way, correlate its shape against
   what comparable loads actually cost. Months are weighted by split-half reliability,
-  since October's daily medians replicate at only 0.045. The column carries less weight
-  than MAE because the fixed lane freezes `quote_signal`: across the 6,164 real December
-  loads the four tree models move within a daily std of 0.0202 to 0.0222 and correlate
-  0.82 to 0.92, while their frozen-lane curves span 3.1x ($8.67 to $26.90).
+  since October's daily medians replicate at only 0.045. Part of the instability is the
+  fixed lane freezing `quote_signal`, which carries 85% of permutation importance: across
+  the 6,164 real December loads these four models move within a daily std of 0.0215 to
+  0.0256 and correlate 0.79 to 0.93, while their frozen-lane curves span 2.8x ($9.01 to
+  $24.99).
 
-  The other eight, by MAE: HGB at 800 iterations and lr 0.03 (145.73), classic
-  GradientBoosting (147.93), XGBoost (153.12), HGB at 63 leaves (153.47), Ridge (176.63),
-  KNeighbors k=25 (190.36), the quote alone with no model (286.20), and a mean predictor
-  (329.24). Four of them outrank ElasticNet, which is in the table for its chart column
-  rather than its MAE, and the 800-iteration HGB edges the tuning shown by 0.13 without
+  The other eight, by MAE: HGB at 800 iterations and lr 0.03 (144.18), classic
+  GradientBoosting (149.52), XGBoost (150.85), HGB at 63 leaves (152.26), Ridge (152.85),
+  KNeighbors k=25 (187.45), the quote alone with no model (286.20), and a mean predictor
+  (329.24). Three of them outrank ElasticNet, which is in the table for its chart column
+  rather than its MAE, and the 800-iteration HGB edges the tuning shown by 1.11 without
   approaching RandomForest.
 - **Imputation lives in the estimator, not in cleaning.** RandomForest cannot read NaN.
   Medians are taken from the training matrix and reused unchanged at predict time, so a

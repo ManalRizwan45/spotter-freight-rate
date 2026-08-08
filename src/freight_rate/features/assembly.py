@@ -10,7 +10,8 @@ import pandas as pd
 from . import geography, temporal
 from .temporal import DateEncoding
 
-EQUIPMENT_CODES = {"Dry Van": 0, "Reefer": 1, "Flatbed": 2}
+EQUIPMENT_TYPES = ("Dry Van", "Reefer", "Flatbed")
+EQUIPMENT_COLUMNS = {kind: f"is_{kind.replace(' ', '_').lower()}" for kind in EQUIPMENT_TYPES}
 
 
 def build_load(frame: pd.DataFrame) -> pd.DataFrame:
@@ -24,6 +25,16 @@ def build_load(frame: pd.DataFrame) -> pd.DataFrame:
     a flag could carry it, but there is nothing to carry: the 300 missing-weight rows
     price like the rest (median rate/mile 2.1176 against 2.1456, Mann-Whitney p = 0.234)
     and match on equipment mix to within 2 points.
+
+    Equipment is one-hot rather than an integer code. A tree can isolate a category from
+    an integer, but only as a contiguous run, so the coding's ORDER decides which single
+    splits exist, and an arbitrary order is not free. Codes of Dry Van=0, Reefer=1,
+    Flatbed=2 cost +1.36 MAE (+/-0.19) against these indicators, the same sign in all
+    three folds. Reordering those codes by median rate per mile recovers the whole gain
+    (-1.37 against the arbitrary order), so what mattered was the ordering, not the
+    representation. One-hot is kept because it needs no ordering to justify at all: the
+    price order is stable in every fold's own training window, but with indicators the
+    question does not arise.
     """
     out = pd.DataFrame(index=frame.index)
     out["distance"] = frame["distance"]
@@ -31,7 +42,8 @@ def build_load(frame: pd.DataFrame) -> pd.DataFrame:
     # feature by a wide margin: 85% of permutation importance, against 7% for distance.
     out["quote_signal"] = frame["quote_signal"]
     out["market_index"] = frame["market_index"]
-    out["equipment_code"] = frame["equipment"].map(EQUIPMENT_CODES).astype(float)
+    for kind, column in EQUIPMENT_COLUMNS.items():
+        out[column] = (frame["equipment"] == kind).astype(float)
     out["weight"] = frame["weight"]
     return out
 
@@ -39,7 +51,9 @@ def build_load(frame: pd.DataFrame) -> pd.DataFrame:
 def build(frame: pd.DataFrame, encoding: DateEncoding,
           market_levels: pd.Series | None = None) -> pd.DataFrame:
     """Full feature matrix for `frame` under the given date encoding."""
-    unknown = set(frame["equipment"].dropna()) - set(EQUIPMENT_CODES)
+    # One-hot would silently encode an unseen type as all-zeros, indistinguishable from
+    # a type the model knows. Raising keeps that from reaching a prediction.
+    unknown = set(frame["equipment"].dropna()) - set(EQUIPMENT_TYPES)
     if unknown:
         raise ValueError(f"unmapped equipment types: {sorted(unknown)}")
 

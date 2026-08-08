@@ -51,12 +51,12 @@ def build(frame: pd.DataFrame) -> pd.DataFrame:
     Direction of travel is deliberately absent. Bearing and the lat/lon deltas were
     tried and measured, paired per load across the forward folds:
 
-        adding bearing and both deltas    +0.26 MAE (+/-0.17)
-        bearing on top of the deltas      +0.02 MAE (+/-0.10)
+        adding bearing and both deltas    +0.27 MAE (+/-0.17)
+        bearing on top of the deltas      -0.05 MAE (+/-0.09)
 
     Adding direction is slightly worse, consistently enough to sit outside the noise,
-    and bearing contributes none of it. Coordinates and haversine are a different
-    matter and stay: removing them costs +2.67 MAE (+/-0.29).
+    and bearing contributes nothing either way. Coordinates and haversine are a
+    different matter and stay: removing them costs +2.61 MAE (+/-0.29).
     """
     out = pd.DataFrame(index=frame.index)
     out["pickup_lat"] = frame["pickup_lat"]
