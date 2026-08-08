@@ -169,11 +169,25 @@ tests/            44 tests, including a scorer-contract guard
   dependency while giving up type checking; frozen dataclasses keep it typed and
   navigable.
 - **`HistGradientBoostingRegressor`, chosen on the December chart rather than on MAE.**
-  RandomForest scores better in-range, $135.50 against $146.27, but its December curve
-  spans only $8.67 and correlates **-0.192** with the actual market level, against
-  $31.18 and **+0.679** for boosting. Averaging deep trees damps the response to any
-  single feature, which is what the chart exists to detect. Also benchmarked: the quote
-  alone, a mean predictor, and Ridge.
+  Ten models were benchmarked under forward chaining, and the result splits by family:
+
+  | Model | MAE | Dec range | Dec corr with market |
+  |---|---|---|---|
+  | ExtraTrees | **129.57** | $12.32 | **-0.493** |
+  | RandomForest | 135.50 | $8.67 | **-0.192** |
+  | **HistGradientBoosting** | 146.27 | $31.18 | **+0.679** |
+  | LightGBM | 146.63 | $26.87 | +0.563 |
+  | ElasticNet | 175.84 | $36.45 | **+0.890** |
+
+  Bagging wins in-range and inverts on December: averaging deep trees damps the response
+  to any single feature, which is exactly what the chart exists to detect. Boosting keeps
+  adding corrections and stays sensitive to `daily_market_level`. ElasticNet is the
+  limiting case, extrapolating almost perfectly and fitting worst.
+
+  Among models clearing both bars, the current configuration has the best December
+  tracking and sits within 0.2 MAE of the best. Raising `max_iter` or `max_leaf_nodes`
+  drops December correlation to +0.354 and +0.550 for no MAE gain. Also tested: XGBoost,
+  classic GradientBoosting, KNeighbors, a mean predictor, and the quote alone.
 - **Leakage boundary.** Cleaning learns nothing from the data: every repair is a pure
   transform, so there is no fitted quantity that could carry training information into
   the prediction window. The daily market level does read the `market_index` *feature*
