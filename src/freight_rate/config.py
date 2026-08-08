@@ -59,12 +59,13 @@ FORWARD_FOLDS: tuple[Fold, ...] = (
 
 @dataclass(frozen=True)
 class ModelParams:
-    max_iter: int = 400
-    learning_rate: float = 0.06
-    max_leaf_nodes: int = 31
-    min_samples_leaf: int = 40
-    l2_regularization: float = 1.0
-    early_stopping: bool = False
+    n_estimators: int = 200
+    min_samples_leaf: int = 20
+    n_jobs: int = -1
+    # oob_score stays off: out-of-bag scoring estimates error from bootstrap
+    # resampling, which is a RANDOM holdout of the same kind this project argues
+    # is invalid on time-ordered data. Forward chaining is the only score reported.
+    oob_score: bool = False
     random_state: int = RANDOM_SEED
 
     def as_kwargs(self) -> dict:

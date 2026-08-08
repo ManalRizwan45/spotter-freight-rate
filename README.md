@@ -25,6 +25,11 @@ are included so the documented workflow is reproducible.
 python -m pip install -e ".[dev]"
 ```
 
+Runtime dependencies are pinned to exact versions, because every figure quoted below is
+a measurement and scikit-learn's tree construction can shift across minor releases.
+Produced on Python 3.13.14 with pandas 2.3.3, numpy 2.5.1, scikit-learn 1.9.0 and
+matplotlib 3.11.1.
+
 ## Run
 
 ```bash
@@ -44,11 +49,10 @@ Then the official scorer:
 python score.py --predictions validation_predictions.csv --december-predictions december_predictions.csv
 ```
 
-> **Note on the scorer invocation.** The supplied instructions point
-> `--december-predictions` at `data/december_chart_inputs.csv`, i.e. that file filled in
-> place. This pipeline writes a filled copy to `december_predictions.csv` at the repo
-> root instead, leaving everything under `data/` exactly as supplied. Both files are
-> byte-identical in structure and the scorer accepts either.
+> **Scorer invocation.** The supplied instructions fill
+> `data/december_chart_inputs.csv` in place. This pipeline writes the filled copy to
+> `december_predictions.csv` instead, leaving `data/` exactly as supplied. Same
+> structure, and the scorer accepts either.
 
 Tests and lint:
 
@@ -82,20 +86,21 @@ wrong:
 
 | Strategy | MAE | RMSE | MAPE | median APE |
 |---|---|---|---|---|
-| Forward chaining (honest) | $146.27 | $640.28 | 6.48% | 3.13% |
-| Random k-fold (optimistic) | $109.40 | $594.02 | 4.96% | 1.98% |
+| Forward chaining (honest) | $135.50 | $639.45 | 5.82% | 2.43% |
+| Random k-fold (optimistic) | $98.62 | $592.91 | 4.46% | 1.47% |
 
-Random k-fold understates MAE by **33.7%**.
+Random k-fold understates MAE by **37.4%**. It is reported here as a measured
+counterexample and is never used to select or score anything.
 
 **Dates are encoded so they extrapolate.** Training ends 2025-10-31; the chart asks for
-December. A `date_ordinal` or `month` feature falls beyond every learned split, so a
-tree clamps it and the chart flatlines. Day-of-week, day-of-month and the looked-up daily
-market level both exist in December.
+December. A `date_ordinal` or `month` feature falls beyond every learned split, so a tree
+clamps it and the chart flatlines. Day-of-week, day-of-month and the looked-up daily
+market level all recur, so December lands inside the learned range.
 
 | Encoding | MAE under forward chaining |
 |---|---|
-| Ordinal (`date_ordinal` + `month`) | $204.12 |
-| Recurring (day-of-week + market level) | **$146.27** |
+| Ordinal (`date_ordinal` + `month`) | $199.39 |
+| Recurring (day-of-week + market level) | **$135.50** |
 
 **Cities are never encoded by name.** Eight of them (Allentown, Charlotte, Chicago,
 Jackson, Knoxville, Laredo, Norfolk, San Diego) appear only in `validation.csv`.
@@ -114,27 +119,29 @@ Holding everything except the date frozen:
 | Market input | Date encoding | Range across the month | Distinct values in 31 days |
 |---|---|---|---|
 | Global mean | Ordinal | **$0.00** | **1** |
-| Recovered daily level | Ordinal | $22.99 | 17 |
-| Recovered daily level | Recurring | $31.18 | **31** |
+| Recovered daily level | Ordinal | $3.45 | 12 |
+| Recovered daily level | Recurring | $8.67 | **31** |
 
-The top row is the failure the chart is built to expose: one value repeated across the
-whole month. The middle row moves, but resolves only 17 of 31 days, because an ordinal
-date encoding cannot separate days that fall beyond the training horizon. The bottom
-row gives all 31 days a distinct value. Recovering
-the daily market level is necessary but not sufficient; the date encoding has to be
-able to use it.
+Recovering the daily market level is necessary but not sufficient. The top row is the
+failure the chart exposes: one value all month. The middle row moves but resolves only
+12 of 31 days, because an ordinal encoding cannot separate dates beyond the training
+horizon. Only the bottom row gives all 31 days a distinct value.
 
-Correlation against the true December market level is deliberately not quoted here.
-For the middle row it has flipped sign across feature configurations, so it is not a
-stable quantity. The distinct-value counts are, and they order the three scenarios
-the same way every time. Figure: `reports/figures/december_encoding_comparison.png`.
+The dollar ranges are small because the chart freezes `quote_signal`, which carries 85%
+of permutation importance. What moves here is the date response with the dominant
+feature pinned, which is what the chart isolates and is not a measure of accuracy.
+
+Correlation against the December market level is not quoted: for the middle row it
+flips sign across feature configurations. The distinct-value counts are stable and order
+the scenarios identically every time. Figure:
+`reports/figures/december_encoding_comparison.png`.
 
 ## Data-quality issues addressed
 
 | Issue | Counts (train / validation) | Handling |
 |---|---|---|
 | Negative `weight` | 292 / 145 | Sign errors: magnitudes match the positive rows at every quantile, so `abs()` |
-| Missing `weight` | 300 / 165 | Left as NaN; the model splits on missingness natively |
+| Missing `weight` | 300 / 165 | Imputed in `RateModel.fit` from training medians (31,496 lb), reused unchanged at predict time. Not imputed in cleaning, which would compute the median across both splits |
 | Missing `market_index` | 374 / 249 | Filled from the same date's mean |
 | Rate outliers | ~0.7% above $4/mile | Kept; the log-ratio target contains them |
 | `market_index` shift | train mean 1.08 → validation 0.93 | Noted; the model does not lean on its upper range |
@@ -165,33 +172,53 @@ tests/            44 tests, including a scorer-contract guard
 
 ## Notes on choices
 
-- **Config in Python, not YAML.** At ~15 parameters a config file costs a parser and a
+- **Config in Python, not YAML.** At 16 fields a config file costs a parser and a
   dependency while giving up type checking; frozen dataclasses keep it typed and
   navigable.
-- **`HistGradientBoostingRegressor`, chosen because nothing dominates it on both
-  deliverables.** Ten models were benchmarked on in-range MAE under forward chaining.
-  Chart quality was judged separately, by rehearsing December on five held-out months:
-  train on everything prior, build the fixed-lane 31-day chart the same way, and
-  correlate its shape against what comparable loads actually cost that month.
+- **`RandomForestRegressor`, chosen on forward-chained MAE.** Thirteen configurations
+  were benchmarked. Both columns below use training-set median imputation for every
+  model, including the two that can read NaN natively, so the comparison is like for
+  like. The five the decision turned on, which is not the top five by MAE:
 
   | Model | MAE | Chart shape vs real prices |
   |---|---|---|
-  | ExtraTrees | **129.57** | +0.04 |
-  | RandomForest | 135.50 | +0.30 |
-  | **HistGradientBoosting** | 146.27 | +0.24 |
-  | LightGBM | 146.63 | +0.26 |
-  | ElasticNet | 175.84 | **+0.44** |
+  | ExtraTrees | **129.57** | +0.038 |
+  | **RandomForest** | 135.50 | +0.298 |
+  | HistGradientBoosting | 145.86 | +0.295 |
+  | LightGBM | 147.18 | +0.267 |
+  | ElasticNet | 175.84 | **+0.435** |
 
-  ElasticNet tracks the chart best and pays 20% on MAE. ExtraTrees wins MAE and has
-  effectively no chart signal. The middle three are not separable on chart shape: across
-  the five months each model's score swings by 0.5 or more, so the choice among them
-  rests on MAE and on needing no extra dependency.
+  **Against boosting the margin is decisive.** Paired per load, RandomForest beats
+  HistGradientBoosting by $10.38 +/-0.87, the same sign in all three folds.
 
-  Chart shape is scored against real prices rather than against the recovered market
-  level. Those two rank models differently, and only the first is ground truth. Months
-  are weighted by their own split-half reliability, since a month whose daily medians do
-  not replicate (October scores 0.045) offers nothing to match. Also tested: XGBoost,
-  classic GradientBoosting, KNeighbors, Ridge, a mean predictor, and the quote alone.
+  **ExtraTrees has the lower pooled MAE**, by $5.93 +/-0.70, but the sign varies by fold
+  (-12.35, +1.13, -6.56). An edge that reverses on one of three time blocks will not
+  carry into an unseen month.
+
+  **ElasticNet leads the chart column** and pays 30% on MAE. It is the only candidate
+  that extrapolates past the training horizon, so both the lead and the cost are real.
+
+  **The chart column does not separate the boosting and bagging candidates**: 0.298
+  against 0.295, and each model's per-month score swings by 0.5 or more across the five
+  rehearsal months. MAE is what decides between them.
+
+  Chart shape is measured by rehearsing December on five held-out months: train on
+  everything prior, build the fixed-lane chart the same way, correlate its shape against
+  what comparable loads actually cost. Months are weighted by split-half reliability,
+  since October's daily medians replicate at only 0.045. The column carries less weight
+  than MAE because the fixed lane freezes `quote_signal`: across the 6,164 real December
+  loads the four tree models move within a daily std of 0.0202 to 0.0222 and correlate
+  0.82 to 0.92, while their frozen-lane curves span 3.1x ($8.67 to $26.90).
+
+  The other eight, by MAE: HGB at 800 iterations and lr 0.03 (145.73), classic
+  GradientBoosting (147.93), XGBoost (153.12), HGB at 63 leaves (153.47), Ridge (176.63),
+  KNeighbors k=25 (190.36), the quote alone with no model (286.20), and a mean predictor
+  (329.24). Four of them outrank ElasticNet, which is in the table for its chart column
+  rather than its MAE, and the 800-iteration HGB edges the tuning shown by 0.13 without
+  approaching RandomForest.
+- **Imputation lives in the estimator, not in cleaning.** RandomForest cannot read NaN.
+  Medians are taken from the training matrix and reused unchanged at predict time, so a
+  validation row cannot influence its own imputed value. Cleaning stays a pure transform.
 - **Leakage boundary.** The daily market level reads the `market_index` feature column
   across both train and validation, never `posted_rate`, because the assessment supplies
   that column for the prediction window. That is a judgment call, so it is stated rather

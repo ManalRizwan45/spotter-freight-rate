@@ -1,38 +1,27 @@
 """Date encodings.
 
-This module decides whether the December chart works, so the two encodings are kept
-side by side and the failing one is retained rather than deleted - the comparison is
-part of the deliverable.
+This module decides whether the December chart works, so both encodings are kept side by
+side and the failing one is retained: the comparison is part of the deliverable.
 
 ORDINAL (unsafe)
-    date_ordinal + month. Both are monotone in time and stop at the training horizon.
-    Training ends 2025-10-31, so every December date falls beyond the last learned
-    split and a gradient-boosted tree clamps it to the final region. Every December day
-    then receives an identical prediction: a flat line.
+    date_ordinal + month, both monotone in time. Training ends 2025-10-31, so every
+    December date falls beyond the last learned split and a tree clamps it to the final
+    region: one identical prediction for all 31 days. No tree can extrapolate past a
+    threshold it never saw.
 
 RECURRING (safe)
     day-of-week, day-of-month, and the looked-up daily market level. These recur, so
-    December lands inside the range the model already knows. The weekly term is
-    justified: market_index carries lag-7 autocorrelation of +0.969, higher than its
-    lag-1 of +0.927.
+    December lands inside the range the model knows. The weekly term is justified:
+    market_index carries lag-7 autocorrelation of +0.969 against lag-1 of +0.927.
 
-    Day-of-week is a plain integer, not a sin/cos pair. Cyclical encoding exists for
-    models where distance in feature space is the mechanism - linear models, kNN,
-    neural nets - because those misread Sunday as six units from Monday. A tree splits
-    on thresholds instead, so isolating one weekday from an integer takes two splits on
-    one feature, where sin/cos requires bounding a region in two dimensions. Measured
-    cost of the sin/cos version: +1.16 MAE, 95% CI +/-0.47.
+    Day-of-week is a plain integer, not sin/cos. Cyclical encoding matters for models
+    where distance in feature space is the mechanism (linear, kNN, neural nets). A tree
+    splits on thresholds, so isolating one weekday takes two splits on one feature where
+    sin/cos needs a region in two dimensions. Measured cost of sin/cos: +0.33 MAE
+    (+/-0.09).
 
-Measured on the 31 fixed-input December rows, with everything except the date frozen:
-
-    constant market input  + ordinal      range $0.00   1 distinct value  in 31 days
-    recovered daily level  + ordinal      range $22.99 17 distinct values
-    recovered daily level  + recurring    range $31.18 31 distinct values
-
-The middle row is the trap: it moves, so it looks fixed, but it resolves only 17 of the
-31 days. Correlation against the true December level is not quoted because it has flipped
-sign across feature configurations; the distinct-value count is stable and orders the
-three scenarios identically every time.
+Range and distinct-value counts for the three December scenarios are tabulated in
+README.md.
 """
 from __future__ import annotations
 

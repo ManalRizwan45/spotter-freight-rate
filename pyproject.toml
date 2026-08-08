@@ -8,13 +8,19 @@ version = "1.0.0"
 description = "Freight rate prediction for the Spotter ML assessment"
 readme = "README.md"
 requires-python = ">=3.10"
+# Pinned exactly, not ranged. Every figure quoted in README.md and in the module
+# docstrings is a measurement, and scikit-learn's tree construction can change across
+# minor releases: a range would let a fresh install report a different MAE than the one
+# documented, with nothing to indicate why. These four are the versions the numbers were
+# produced on. The assessment's own requirements.txt is left as supplied.
 dependencies = [
-    "matplotlib>=3.8,<4",
-    "numpy>=1.26,<3",
-    "pandas>=2.0,<3",
-    "scikit-learn>=1.4,<2",
+    "matplotlib==3.11.1",
+    "numpy==2.5.1",
+    "pandas==2.3.3",
+    "scikit-learn==1.9.0",
 ]
 
+# Tooling stays ranged: it cannot change a result, only how results are checked.
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",

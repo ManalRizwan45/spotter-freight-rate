@@ -5,9 +5,10 @@ Issues addressed, with counts from the supplied files:
   negative weight      292 train / 145 validation. Magnitudes are plausible and the
                        distribution of their absolute values matches the positive rows,
                        so these read as sign errors rather than corrupt records.
-  missing weight       300 / 165. Left as NaN: HistGradientBoosting splits on
-                       missingness natively, which beats imputing a value the model
-                       then cannot distinguish from a real one.
+  missing weight       300 / 165. Left as NaN here. Cleaning does not impute, because
+                       imputation depends on the model: the estimator fills these from
+                       training-set medians, which RandomForest requires and which must
+                       be fitted on train alone. Doing it here would leak.
   missing market_index 374 / 249. Filled from the same date's mean, because 97.8% of
                        the column's variance is explained by date alone.
 

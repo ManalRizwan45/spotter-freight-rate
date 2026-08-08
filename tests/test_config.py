@@ -9,7 +9,7 @@ from __future__ import annotations
 import dataclasses
 
 import pandas as pd
-from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.ensemble import RandomForestRegressor
 
 from freight_rate.config import CONFIG, ModelParams
 
@@ -22,16 +22,16 @@ def test_as_kwargs_covers_every_field():
 
 def test_as_kwargs_are_all_real_sklearn_parameters():
     """Catches a renamed or removed parameter on a scikit-learn upgrade."""
-    accepted = set(HistGradientBoostingRegressor().get_params())
+    accepted = set(RandomForestRegressor().get_params())
     unknown = set(CONFIG.model.as_kwargs()) - accepted
-    assert not unknown, f"not accepted by HistGradientBoostingRegressor: {sorted(unknown)}"
+    assert not unknown, f"not accepted by RandomForestRegressor: {sorted(unknown)}"
 
 
-def test_early_stopping_is_off():
-    """sklearn's 'auto' enables early stopping above 10,000 rows, and the training set
-    has 48,000. That would carve out an internal RANDOM validation split - exactly the
-    split strategy this project argues is invalid here."""
-    assert CONFIG.model.early_stopping is False
+def test_out_of_bag_scoring_is_off():
+    """OOB scoring estimates error from bootstrap resampling: a RANDOM holdout, which
+    is the split strategy this project argues is invalid on time-ordered data. Every
+    reported score comes from forward chaining instead."""
+    assert CONFIG.model.oob_score is False
 
 
 def test_forward_folds_never_overlap_in_time():

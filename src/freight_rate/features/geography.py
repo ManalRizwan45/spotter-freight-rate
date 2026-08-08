@@ -49,14 +49,14 @@ def build(frame: pd.DataFrame) -> pd.DataFrame:
     """Geography block of the feature matrix.
 
     Direction of travel is deliberately absent. Bearing and the lat/lon deltas were
-    tried and measured: dropping all three costs +0.09 MAE with a 95% interval of
-    +/-0.58, i.e. nothing. Dropping bearing alone costs a consistent +1.29, which
-    looks like signal but is redundancy - the three encode the same direction, so
-    removing one leaves the others unable to fill the gap the model built around it.
-    Removing all three lets it route around the concept entirely.
+    tried and measured, paired per load across the forward folds:
 
-    The coordinates and haversine do earn their place: removing them as well costs
-    +2.20 MAE, well outside the noise.
+        adding bearing and both deltas    +0.26 MAE (+/-0.17)
+        bearing on top of the deltas      +0.02 MAE (+/-0.10)
+
+    Adding direction is slightly worse, consistently enough to sit outside the noise,
+    and bearing contributes none of it. Coordinates and haversine are a different
+    matter and stay: removing them costs +2.67 MAE (+/-0.29).
     """
     out = pd.DataFrame(index=frame.index)
     out["pickup_lat"] = frame["pickup_lat"]

@@ -11,11 +11,12 @@ is recovered differently, and the reasoning differs in kind:
                  which covers all 31 December days. The averaging cancels per-load noise
                  to within about +/-0.002.
 
-  quote_signal   Estimated, coarsely, and held constant across the month. The column has
-                 almost no daily structure - day-to-day std of 0.016 against a within-day
-                 spread of 0.219 - so there is no daily value to recover. A conditional
-                 median over comparable loads (same equipment, similar length) is the
-                 honest estimate.
+  quote_signal   Estimated, coarsely, and held constant across the month. On the
+                 validation rows the column has no recoverable daily level: day-to-day
+                 std of 0.016 against a within-day spread of 0.219, and two random halves
+                 of the same December day disagree outright, split-half -0.25 against
+                 +0.999 for market_index. A conditional median over comparable loads
+                 (same equipment, similar length) is the honest estimate.
 
 Holding quote_signal constant has a useful side effect: every bit of movement in the
 resulting December curve comes from the date handling, which is exactly what the chart

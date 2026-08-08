@@ -1,14 +1,17 @@
 """The estimator: feature building, fitting, and prediction in dollars.
 
-HistGradientBoostingRegressor is the choice because it handles NaN natively (weight has
-300 training nulls that carry signal as missingness), trains on 48,000 rows in seconds,
-and needs no scaling or one-hot expansion.
+RandomForestRegressor is the choice on the evidence: under forward chaining it beats
+HistGradientBoosting by $10.38 +/- 0.87 MAE, with the same sign in all three folds.
+
+It cannot read NaN, so nulls are filled with medians taken from the TRAINING matrix only
+and reused unchanged at predict time, meaning a validation row can never influence its
+own imputed value.
 """
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.ensemble import RandomForestRegressor
 
 from ..config import CONFIG
 from ..features import DateEncoding
@@ -19,15 +22,16 @@ from . import target
 class RateModel:
     """Fit on labelled loads, predict rates in dollars.
 
-    Holds the date encoding and market levels so that train and predict cannot
-    accidentally disagree about how a date is represented.
+    Holds the date encoding, the market levels and the imputation medians, so train and
+    predict cannot disagree about how a row is represented.
     """
 
     def __init__(self, encoding: DateEncoding, market_levels: pd.Series | None = None) -> None:
         self.encoding = encoding
         self.market_levels = market_levels
-        self._model = HistGradientBoostingRegressor(**CONFIG.model.as_kwargs())
+        self._model = RandomForestRegressor(**CONFIG.model.as_kwargs())
         self._feature_names: list[str] | None = None
+        self._medians: pd.Series | None = None
 
     def _matrix(self, frame: pd.DataFrame) -> pd.DataFrame:
         return build_features(frame, self.encoding, self.market_levels)
@@ -35,7 +39,11 @@ class RateModel:
     def fit(self, train: pd.DataFrame) -> RateModel:
         matrix = self._matrix(train)
         self._feature_names = list(matrix.columns)
-        self._model.fit(matrix, target.encode(train))
+        self._medians = matrix.median()
+        unusable = self._medians.index[self._medians.isna()].tolist()
+        if unusable:
+            raise ValueError(f"no median available to impute (all-null in train): {unusable}")
+        self._model.fit(matrix.fillna(self._medians), target.encode(train))
         return self
 
     def predict(self, frame: pd.DataFrame) -> np.ndarray:
@@ -47,7 +55,7 @@ class RateModel:
                 "feature mismatch between fit and predict: "
                 f"expected {self._feature_names}, got {list(matrix.columns)}"
             )
-        return target.decode(self._model.predict(matrix), frame)
+        return target.decode(self._model.predict(matrix.fillna(self._medians)), frame)
 
     def fit_predict(self, train: pd.DataFrame, test: pd.DataFrame) -> np.ndarray:
         return self.fit(train).predict(test)

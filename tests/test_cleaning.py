@@ -19,7 +19,9 @@ def test_negative_weights_are_corrected(sample_loads):
 
 
 def test_missing_weight_is_left_missing(sample_loads):
-    """Deliberately not imputed: the model splits on missingness natively."""
+    """Deliberately not imputed here. RateModel.fit imputes from training medians, which
+    must be fitted on train alone; doing it in cleaning would compute them over both
+    splits and let a validation row set the value used to fill itself."""
     cleaned = cleaning.clean(sample_loads)
     assert cleaned["weight"].isna().sum() == 3
 

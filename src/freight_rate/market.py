@@ -14,8 +14,8 @@ validation.csv covers all 31 December days.
 
 Leakage note: this reads the market_index feature column only, never posted_rate.
 Computing it across train and validation together uses information the assessment
-supplies for the prediction window, so it is legitimate - but it is a judgment call
-and is called out in the report.
+supplies for the prediction window. That is a judgment call, so it is stated rather
+than assumed.
 """
 from __future__ import annotations
 
