@@ -178,9 +178,6 @@ tests/            44 tests, including a scorer-contract guard
   feature, which is precisely what the chart exists to detect. Boosting sums shallow
   corrections and stays sensitive to `daily_market_level`. A 7% MAE gain is not worth a
   chart that ignores the market.
-
-  The obvious reason to reach for this estimator, native `NaN` handling, turns out to be
-  worth nothing here: imputing the missing weights instead measures -0.41 ± 0.47.
 - **Leakage boundary.** Cleaning learns nothing from the data: every repair is a pure
   transform, so there is no fitted quantity that could carry training information into
   the prediction window. The daily market level does read the `market_index` *feature*
