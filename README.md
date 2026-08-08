@@ -169,15 +169,11 @@ tests/            44 tests, including a scorer-contract guard
   dependency while giving up type checking; frozen dataclasses keep it typed and
   navigable.
 - **`HistGradientBoostingRegressor`, chosen on the December chart rather than on MAE.**
-  Benchmarked under forward chaining against the quote alone, a mean predictor, Ridge,
-  and RandomForest. RandomForest is genuinely better in-range, $135.50 MAE against
-  $146.27, consistent across all three folds. It was rejected anyway: on the December
-  rows, where every input except the date is frozen, it yields a curve spanning $8.67
-  that correlates **-0.192** with the actual December market level, against $31.18 and
-  **+0.679** for boosting. Averaging 200 deep trees damps the response to any single
-  feature, which is precisely what the chart exists to detect. Boosting sums shallow
-  corrections and stays sensitive to `daily_market_level`. A 7% MAE gain is not worth a
-  chart that ignores the market.
+  RandomForest scores better in-range, $135.50 against $146.27, but its December curve
+  spans only $8.67 and correlates **-0.192** with the actual market level, against
+  $31.18 and **+0.679** for boosting. Averaging deep trees damps the response to any
+  single feature, which is what the chart exists to detect. Also benchmarked: the quote
+  alone, a mean predictor, and Ridge.
 - **Leakage boundary.** Cleaning learns nothing from the data: every repair is a pure
   transform, so there is no fitted quantity that could carry training information into
   the prediction window. The daily market level does read the `market_index` *feature*
