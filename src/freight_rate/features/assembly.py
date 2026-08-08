@@ -29,17 +29,17 @@ def build_load(frame: pd.DataFrame) -> pd.DataFrame:
     Equipment is one-hot rather than an integer code. A tree can isolate a category from
     an integer, but only as a contiguous run, so the coding's ORDER decides which single
     splits exist, and an arbitrary order is not free. Codes of Dry Van=0, Reefer=1,
-    Flatbed=2 cost +1.36 MAE (+/-0.19) against these indicators, the same sign in all
-    three folds. Reordering those codes by median rate per mile recovers the whole gain
-    (-1.37 against the arbitrary order), so what mattered was the ordering, not the
-    representation. One-hot is kept because it needs no ordering to justify at all: the
-    price order is stable in every fold's own training window, but with indicators the
-    question does not arise.
+    Flatbed=2 cost +1.39 MAE (+/-0.19) against these indicators, the same sign in all
+    three folds. Reordering those same codes by median rate per mile closes the gap
+    entirely, landing within 0.03 of the indicators, so what mattered was the ordering
+    and not the representation. One-hot is kept because it needs no ordering to justify
+    at all: the price order is stable in every fold's own training window, so ordered
+    codes would also be defensible, but with indicators the question does not arise.
     """
     out = pd.DataFrame(index=frame.index)
     out["distance"] = frame["distance"]
     # quote_signal is a per-load dollars-per-mile quote and the strongest single
-    # feature by a wide margin: 85% of permutation importance, against 7% for distance.
+    # feature by a wide margin: 78% of permutation importance, against 18% for distance.
     out["quote_signal"] = frame["quote_signal"]
     out["market_index"] = frame["market_index"]
     for kind, column in EQUIPMENT_COLUMNS.items():
