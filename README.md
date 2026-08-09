@@ -187,8 +187,8 @@ tests/            44 tests, including a scorer-contract guard
   |---|---|---|
   | ExtraTrees (tuned) | **128.28** | +0.153 |
   | **RandomForest (tuned)** | 128.93 | +0.233 |
+  | LightGBM (tuned) | 131.06 | +0.237 |
   | HistGradientBoosting (tuned) | 135.57 | +0.204 |
-  | LightGBM | 146.48 | +0.250 |
   | ElasticNet | 151.90 | **+0.435** |
 
   **Against boosting the margin is decisive.** Paired per load, RandomForest beats
@@ -199,19 +199,27 @@ tests/            44 tests, including a scorer-contract guard
   the hardest block. An edge that reverses on one of three time windows will not carry
   into an unseen month, so RandomForest takes it on stability rather than on average.
 
-  **The top three families were each tuned**, over comparable grids on the same folds,
-  so no ranking here rests on one model having been searched and another guessed at.
-  Boosting gained the most from it, 145.29 to 135.57, and still finishes 6.64 behind.
-  `max_features` was the largest single lever for both tree families, which is the one
-  result that generalised across them.
+  **Every one of the five was tuned**, over comparable grids on the same folds, so no
+  ranking here rests on one model having been searched and another guessed at. Boosting
+  gained heavily from it: XGBoost 150.85 to 133.43, LightGBM 146.48 to 131.06,
+  HistGradientBoosting 145.29 to 135.57. Each search was extended until its optimum sat
+  interior on every axis rather than against a grid boundary.
 
-  Tuning does not transfer between families, though. RandomForest's settings applied to
-  ExtraTrees make it worse (135.23), because ExtraTrees already randomises split
-  thresholds and its own best setting uses every feature. LightGBM and XGBoost are left
-  at defaults: they are boosting implementations, and boosting's tuned ceiling here is
-  135.57, so a search would have to find seven dollars that HistGradientBoosting's did
-  not. That is an inference rather than a measurement, and it is the one gap left in the
-  comparison.
+  Feature subsampling was the largest single lever for every tree family, the one tuning
+  result that generalised. Nothing else did: RandomForest's settings applied to ExtraTrees
+  make it worse (135.23), because ExtraTrees already randomises split thresholds and its
+  own best setting uses every feature.
+
+  **The folds disagree about which family is better, and they disagree the same way every
+  time.** All three boosted models beat RandomForest on fold 2 and lose on folds 1 and 3.
+  XGBoost is 14.52 better on fold 2 and 20.59 worse on fold 3; LightGBM 7.28 better and
+  8.72 worse. Three independent implementations splitting identically is structure, not
+  noise: fold 2 tests July and August, the block every model finds hardest, and boosting
+  handles it better while paying elsewhere.
+
+  RandomForest is therefore the best single model here, not the best available answer. An
+  ensemble weighted toward boosting on the hardest block is the obvious next step and was
+  not attempted. Stated as an open direction rather than left for a reader to notice.
 
   **ElasticNet leads the chart column** and pays 18% on MAE. It is the only candidate
   that extrapolates past the training horizon, so both the lead and the cost are real.
@@ -228,11 +236,11 @@ tests/            44 tests, including a scorer-contract guard
   since October's daily medians replicate at only 0.045. Part of the instability is the
   fixed lane freezing `quote_signal`, which carries 81% of permutation importance.
 
-  The other eight, by MAE: two further HGB hand-tunings (144.18 and 152.26, both beaten
-  by the searched configuration above), classic GradientBoosting (149.52), XGBoost
-  (150.85), Ridge (152.85), KNeighbors k=25 (187.45), the quote alone with no model
-  (286.20), and a mean predictor (329.24). Three outrank ElasticNet, which is in the table
-  for its chart column rather than its MAE.
+  Also benchmarked, none of them competitive: XGBoost, which tunes to 133.43 and is
+  discussed above; classic GradientBoosting (149.52), Ridge (152.85), KNeighbors k=25
+  (187.45), two superseded HGB hand-tunings (144.18 and 152.26), the quote alone with no
+  model (286.20), and a mean predictor (329.24). ElasticNet is in the table for its chart
+  column rather than its MAE.
 - **Hyperparameters were searched, and one of them mattered.** sklearn defaults
   `max_features` to every column, so with `quote_signal` at 81% of permutation importance
   each tree splits on it first and the forest ends up correlated, which is the one thing
