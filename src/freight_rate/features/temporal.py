@@ -17,8 +17,8 @@ RECURRING (safe)
     Day-of-week is a plain integer, not sin/cos. Cyclical encoding matters for models
     where distance in feature space is the mechanism (linear, kNN, neural nets). A tree
     splits on thresholds, so isolating one weekday takes two splits on one feature where
-    sin/cos needs a region in two dimensions. Measured cost of sin/cos: +0.34 MAE
-    (+/-0.09).
+    sin/cos needs a region in two dimensions. Measured cost of sin/cos: +0.58 MAE
+    (+/-0.15), though the sign varies by fold.
 
 Range and distinct-value counts for the three December scenarios are tabulated in
 README.md.

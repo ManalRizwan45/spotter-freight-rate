@@ -59,7 +59,23 @@ FORWARD_FOLDS: tuple[Fold, ...] = (
 
 @dataclass(frozen=True)
 class ModelParams:
-    n_estimators: int = 200
+    """Tuned on the forward-chaining folds, one parameter at a time then combined.
+
+    max_features is the one that matters. sklearn defaults it to every feature, so with
+    quote_signal dominating permutation importance each tree splits on it first and the
+    forest ends up correlated, which is the one thing averaging cannot repair.
+    Restricting it is worth several dollars of MAE, the same sign on all three folds.
+
+    It is an integer rather than a fraction on purpose: as a float sklearn takes
+    int(fraction * n_features), so 0.55 and 0.6 can mean the same thing and the fraction
+    reads more precise than it is.
+
+    min_samples_leaf=20 survived its own sweep: 10 and 40 are both worse. More trees than
+    400 buys nothing measurable, and absolute_error, friedman_mse, ccp_alpha, max_depth
+    and max_samples were all tried without a gain that held across folds.
+    """
+    n_estimators: int = 400
+    max_features: int = 8
     min_samples_leaf: int = 20
     n_jobs: int = -1
     # oob_score stays off: out-of-bag scoring estimates error from bootstrap

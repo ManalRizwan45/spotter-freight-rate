@@ -7,8 +7,8 @@ respects time order and faces the same extrapolation the final task demands.
 Random k-fold is provided only as a measured contrast. Daily median rate-per-mile
 carries lag-1 autocorrelation of +0.844, so a shuffled split places one day's loads in
 train and the adjacent day's in test while both share a market level. Measured effect:
-random k-fold reports MAE $97.81 against forward chaining's $134.22, understating error
-by 37.2%.
+random k-fold reports MAE $94.13 against forward chaining's $128.93, understating error
+by 37.0%.
 """
 from __future__ import annotations
 
