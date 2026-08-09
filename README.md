@@ -189,7 +189,7 @@ tests/            44 tests, including a scorer-contract guard
   | **RandomForest (tuned)** | 128.93 | +0.233 |
   | LightGBM (tuned) | 131.06 | +0.237 |
   | HistGradientBoosting (tuned) | 135.57 | +0.204 |
-  | ElasticNet | 151.90 | **+0.435** |
+  | ElasticNet (tuned) | 148.23 | **+0.382** |
 
   **Against boosting the margin is decisive.** Paired per load, RandomForest beats
   HistGradientBoosting by $6.64 +/-0.61, the same sign in all three folds.
@@ -210,18 +210,25 @@ tests/            44 tests, including a scorer-contract guard
   make it worse (135.23), because ExtraTrees already randomises split thresholds and its
   own best setting uses every feature.
 
-  **The folds disagree about which family is better, and they disagree the same way every
-  time.** All three boosted models beat RandomForest on fold 2 and lose on folds 1 and 3.
-  XGBoost is 14.52 better on fold 2 and 20.59 worse on fold 3; LightGBM 7.28 better and
-  8.72 worse. Three independent implementations splitting identically is structure, not
-  noise: fold 2 tests July and August, the block every model finds hardest, and boosting
-  handles it better while paying elsewhere.
+  **The folds disagree about which model is better, and what separates them is model
+  capacity.** Fold 2, which tests July and August, is the block every model finds hardest,
+  and the ranking there is close to reversed. Against RandomForest on fold 2: XGBoost at
+  depth 3 is 14.52 better, ElasticNet (a linear model) 13.89 better, LightGBM at four
+  leaves 7.28 better. All three pay for it on folds 1 and 3, ElasticNet by 44.41.
+
+  Every model that wins fold 2 is a heavily constrained one, and every search in this
+  repo tuned toward more constraint: `max_features` 8 of 15 for the forest, 0.4 for HGB,
+  0.3 for XGBoost, `reg_lambda` 50 for both boosters, and ElasticNet's lambda ten times
+  its hand-picked value. Five independent searches agreeing is worth more than any single
+  one of them. The reading is that July-August departs from what the earlier months teach,
+  so capacity spent fitting them is capacity misspent.
 
   RandomForest is therefore the best single model here, not the best available answer. An
-  ensemble weighted toward boosting on the hardest block is the obvious next step and was
-  not attempted. Stated as an open direction rather than left for a reader to notice.
+  ensemble weighted toward constrained models on the hardest block is the obvious next
+  step and was not attempted. Stated as an open direction rather than left for a reader
+  to notice.
 
-  **ElasticNet leads the chart column** and pays 18% on MAE. It is the only candidate
+  **ElasticNet leads the chart column** and pays 15% on MAE. It is the only candidate
   that extrapolates past the training horizon, so both the lead and the cost are real.
 
   **The chart column is unstable and is not what decides this.** Edits with nothing to
@@ -240,7 +247,8 @@ tests/            44 tests, including a scorer-contract guard
   discussed above; classic GradientBoosting (149.52), Ridge (152.85), KNeighbors k=25
   (187.45), two superseded HGB hand-tunings (144.18 and 152.26), the quote alone with no
   model (286.20), and a mean predictor (329.24). ElasticNet is in the table for its chart
-  column rather than its MAE.
+  column rather than its MAE, and its lambda and L1 mix were searched like everything
+  else.
 - **Hyperparameters were searched, and one of them mattered.** sklearn defaults
   `max_features` to every column, so with `quote_signal` at 81% of permutation importance
   each tree splits on it first and the forest ends up correlated, which is the one thing
