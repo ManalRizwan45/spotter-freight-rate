@@ -247,8 +247,10 @@ tests/            44 tests, including a scorer-contract guard
   discussed above; classic GradientBoosting (149.52), Ridge (152.85), KNeighbors k=25
   (187.45), two superseded HGB hand-tunings (144.18 and 152.26), the quote alone with no
   model (286.20), and a mean predictor (329.24). ElasticNet is in the table for its chart
-  column rather than its MAE, and its lambda and L1 mix were searched like everything
-  else.
+  column rather than its MAE. Its lambda and L1 mix were searched jointly, coarsely then
+  finely: the optimum is a ridge rather than a peak, since the model responds to the
+  products lambda*mix and lambda*(1-mix) rather than to either number alone, and
+  everything along it lands within 0.15 MAE.
 - **Hyperparameters were searched, and one of them mattered.** sklearn defaults
   `max_features` to every column, so with `quote_signal` at 81% of permutation importance
   each tree splits on it first and the forest ends up correlated, which is the one thing
