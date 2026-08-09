@@ -178,41 +178,49 @@ tests/            44 tests, including a scorer-contract guard
   dependency while giving up type checking; frozen dataclasses keep it typed and
   navigable.
 - **`RandomForestRegressor`, chosen on forward-chained MAE.** Thirteen configurations
-  were benchmarked. Every column below uses training-set median imputation, including for
-  the models that can read NaN natively, so the comparison is like for like. The five the
-  decision turned on:
+  were benchmarked at sensible defaults, then the three leading families were tuned over
+  comparable grids, roughly 130 fits in all. Every column below uses training-set median
+  imputation, including for the models that can read NaN natively, so the comparison is
+  like for like. The five the decision turned on, each at its best known setting:
 
   | Model | MAE | Chart shape vs real prices |
   |---|---|---|
   | ExtraTrees (tuned) | **128.28** | +0.153 |
   | **RandomForest (tuned)** | 128.93 | +0.233 |
-  | HistGradientBoosting | 145.29 | +0.074 |
+  | HistGradientBoosting (tuned) | 135.57 | +0.204 |
   | LightGBM | 146.48 | +0.250 |
   | ElasticNet | 151.90 | **+0.435** |
 
   **Against boosting the margin is decisive.** Paired per load, RandomForest beats
-  HistGradientBoosting by $16.39 +/-0.83, the same sign in all three folds.
+  HistGradientBoosting by $6.64 +/-0.61, the same sign in all three folds.
 
   **ExtraTrees has the lower pooled MAE**, by $0.64 +/-0.43, but the sign varies by fold
   (-3.41, +4.43, -2.97): it is much better on folds 1 and 3 and clearly worse on fold 2,
   the hardest block. An edge that reverses on one of three time windows will not carry
   into an unseen month, so RandomForest takes it on stability rather than on average.
 
-  **Only these two were tuned**, over the same grid and the same folds, because the
-  choice between them is the one that matters. The other eleven sit at reasonable
-  defaults. Worth knowing that RandomForest's tuning does not transfer: applied to
-  ExtraTrees it makes it worse (135.23), since ExtraTrees already randomises split
-  thresholds and does not need feature subsampling on top. Its own best setting uses
-  every feature.
+  **The top three families were each tuned**, over comparable grids on the same folds,
+  so no ranking here rests on one model having been searched and another guessed at.
+  Boosting gained the most from it, 145.29 to 135.57, and still finishes 6.64 behind.
+  `max_features` was the largest single lever for both tree families, which is the one
+  result that generalised across them.
+
+  Tuning does not transfer between families, though. RandomForest's settings applied to
+  ExtraTrees make it worse (135.23), because ExtraTrees already randomises split
+  thresholds and its own best setting uses every feature. LightGBM and XGBoost are left
+  at defaults: they are boosting implementations, and boosting's tuned ceiling here is
+  135.57, so a search would have to find seven dollars that HistGradientBoosting's did
+  not. That is an inference rather than a measurement, and it is the one gap left in the
+  comparison.
 
   **ElasticNet leads the chart column** and pays 18% on MAE. It is the only candidate
   that extrapolates past the training horizon, so both the lead and the cost are real.
 
-  **The chart column is unstable and is not what decides this.** Feature and
-  hyperparameter edits with nothing to do with dates have moved HistGradientBoosting's
-  score across +0.295, +0.074, +0.137 and +0.074 while its MAE moved by about a dollar.
-  Per-month scores swing by half a point or more across the five rehearsal months. A
-  column that reorders under unrelated edits cannot carry a model decision, so MAE does.
+  **The chart column is unstable and is not what decides this.** Edits with nothing to
+  do with dates have moved HistGradientBoosting's score across +0.295, +0.074, +0.137 and
+  +0.204. Per-month scores swing by half a point or more across the five rehearsal
+  months. A column that reorders under unrelated edits cannot carry a model decision, so
+  MAE does.
 
   Chart shape is measured by rehearsing December on five held-out months: train on
   everything prior, build the fixed-lane chart the same way, correlate its shape against
@@ -220,12 +228,11 @@ tests/            44 tests, including a scorer-contract guard
   since October's daily medians replicate at only 0.045. Part of the instability is the
   fixed lane freezing `quote_signal`, which carries 81% of permutation importance.
 
-  The other eight, by MAE: HGB at 800 iterations and lr 0.03 (144.18), classic
-  GradientBoosting (149.52), XGBoost (150.85), HGB at 63 leaves (152.26), Ridge (152.85),
-  KNeighbors k=25 (187.45), the quote alone with no model (286.20), and a mean predictor
-  (329.24). Three of them outrank ElasticNet, which is in the table for its chart column
-  rather than its MAE, and the 800-iteration HGB edges the tuning shown by 1.11 without
-  approaching RandomForest.
+  The other eight, by MAE: two further HGB hand-tunings (144.18 and 152.26, both beaten
+  by the searched configuration above), classic GradientBoosting (149.52), XGBoost
+  (150.85), Ridge (152.85), KNeighbors k=25 (187.45), the quote alone with no model
+  (286.20), and a mean predictor (329.24). Three outrank ElasticNet, which is in the table
+  for its chart column rather than its MAE.
 - **Hyperparameters were searched, and one of them mattered.** sklearn defaults
   `max_features` to every column, so with `quote_signal` at 81% of permutation importance
   each tree splits on it first and the forest ends up correlated, which is the one thing

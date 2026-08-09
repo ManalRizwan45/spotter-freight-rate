@@ -1,7 +1,8 @@
 """The estimator: feature building, fitting, and prediction in dollars.
 
 RandomForestRegressor is the choice on the evidence: under forward chaining it beats
-HistGradientBoosting by $16.39 +/- 0.83 MAE, with the same sign in all three folds.
+HistGradientBoosting by $6.64 +/- 0.61 MAE with the same sign in all three folds,
+both models tuned over comparable grids on those folds.
 
 It cannot read NaN, so nulls are filled with medians taken from the TRAINING matrix only
 and reused unchanged at predict time, meaning a validation row can never influence its
