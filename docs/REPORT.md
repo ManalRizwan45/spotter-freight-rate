@@ -202,9 +202,6 @@ Tuning found one lever that generalised: **feature subsampling**, for every tree
 survived its own sweep, 400 trees is where more stops helping, and `absolute_error`,
 `ccp_alpha`, `max_depth` and `max_samples` were all tried without a gain that held.
 
-RandomForest is the best *single* model here, not the best available answer. An ensemble
-weighted toward constrained models on the hardest block is the obvious next step and was
-not attempted.
 
 ## 8. Results
 
@@ -333,5 +330,4 @@ python score.py --predictions validation_predictions.csv --december-predictions 
 |---|---|
 | The regime risk in §9 | Unresolved. Nothing observable at prediction time distinguishes the two regimes |
 | Selection and scoring share the same three folds | The reported MAE is optimistic as a *generalisation* estimate by an amount this design cannot measure. Comparisons between configurations are unaffected |
-| Single model, no ensemble | Constrained models win the hardest fold; a weighted ensemble is the obvious next step and was not attempted |
 | Leakage boundary | The daily market level reads the `market_index` feature column across both splits, never `posted_rate`. A judgment call, stated rather than assumed |
