@@ -37,6 +37,22 @@ class RateModel:
     def _matrix(self, frame: pd.DataFrame) -> pd.DataFrame:
         return build_features(frame, self.encoding, self.market_levels)
 
+    @property
+    def estimator(self) -> RandomForestRegressor:
+        """The fitted forest, for inspection tools that take an sklearn estimator."""
+        return self._model
+
+    def design_matrix(self, frame: pd.DataFrame) -> pd.DataFrame:
+        """The matrix exactly as the forest sees it: built, then imputed.
+
+        Public because permutation importance and any other inspection needs these
+        columns, in this order, filled these values. Rebuilding them by hand is how a
+        report ends up describing a model that was never fitted.
+        """
+        if self._medians is None:
+            raise RuntimeError("fit() must be called before design_matrix()")
+        return self._matrix(frame).fillna(self._medians)
+
     def fit(self, train: pd.DataFrame) -> RateModel:
         matrix = self._matrix(train)
         self._feature_names = list(matrix.columns)
@@ -50,13 +66,13 @@ class RateModel:
     def predict(self, frame: pd.DataFrame) -> np.ndarray:
         if self._feature_names is None:
             raise RuntimeError("fit() must be called before predict()")
-        matrix = self._matrix(frame)
+        matrix = self.design_matrix(frame)
         if list(matrix.columns) != self._feature_names:
             raise RuntimeError(
                 "feature mismatch between fit and predict: "
                 f"expected {self._feature_names}, got {list(matrix.columns)}"
             )
-        return target.decode(self._model.predict(matrix.fillna(self._medians)), frame)
+        return target.decode(self._model.predict(matrix), frame)
 
     def fit_predict(self, train: pd.DataFrame, test: pd.DataFrame) -> np.ndarray:
         return self.fit(train).predict(test)
