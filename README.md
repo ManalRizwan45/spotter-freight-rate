@@ -15,9 +15,9 @@ data/december_chart_inputs.csv            31 fixed-input rows; `december` fills 
 data/validation_predictions_template.csv  the submission template
 ```
 
-This repository is private and shared only with the reviewers who supplied those files,
-and `december_chart_inputs.csv` with its `predicted_rate` column filled is itself a
-deliverable. The assessment PDF is not committed, since nothing here reads it and
+`december_chart_inputs.csv` with its `predicted_rate` column filled is itself a
+deliverable, which is why the directory is committed rather than ignored. The assessment
+PDF is not committed, since nothing here reads it and
 [`docs/assessment_readme.md`](docs/assessment_readme.md) carries the instructions that
 matter. `score.py` is included and unmodified.
 

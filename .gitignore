@@ -1,8 +1,8 @@
 ### Spotter-supplied assessment materials.
-# data/ is committed: the repository is private and shared only with the reviewers who
-# supplied these files, and one of them - december_chart_inputs.csv with its
-# predicted_rate column filled - is a deliverable. The assessment PDF stays out because
-# nothing here reads it; docs/assessment_readme.md carries the instructions that matter.
+# data/ is committed: december_chart_inputs.csv with its predicted_rate column filled is
+# a deliverable, and committing the rest means the pipeline runs on a fresh clone with
+# nothing to place by hand. The assessment PDF stays out because nothing here reads it;
+# docs/assessment_readme.md carries the instructions that matter.
 Freight_Rate_ML_Assessment.pdf
 
 ### Python
