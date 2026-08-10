@@ -1,9 +1,10 @@
 """Command line entry point.
 
     python -m freight_rate.cli validate     forward chaining, and the random-fold contrast
+    python -m freight_rate.cli evaluate     full metric panel, segments, diagnostics
     python -m freight_rate.cli predict      write validation_predictions.csv
     python -m freight_rate.cli december     December curves + december_predictions.csv
-    python -m freight_rate.cli all          all three
+    python -m freight_rate.cli all          all four
 
 One entry point rather than a set of run_*.py scripts: argument parsing stays in one
 place and every pipeline stage remains importable and testable.
@@ -19,7 +20,7 @@ import pandas as pd
 from . import cleaning, loading, market
 from . import december as december_module
 from .config import CONFIG
-from .evaluation import charts, metrics
+from .evaluation import charts, metrics, report
 from .features import DateEncoding
 from .modeling import RateModel, forward_folds, random_folds
 
@@ -96,6 +97,30 @@ def run_validate(pipeline: Pipeline) -> None:
     print("tests beyond its own training horizon - the same extrapolation December demands.")
 
 
+def run_evaluate(pipeline: Pipeline) -> None:
+    _heading("EVALUATION  (pooled out-of-fold predictions from the forward folds)")
+    pooled, predicted = report.out_of_fold(forward_folds(pipeline.train), pipeline.model)
+    print(f"{len(pooled):,} loads, {pooled.date.min():%Y-%m-%d} to {pooled.date.max():%Y-%m-%d}. "
+          "Every one scored by a model trained only on earlier months.")
+
+    print()
+    table = report.compare(
+        pooled["posted_rate"],
+        {"model": predicted, **report.baselines(pooled)},
+        reference="quote only",
+    )
+    print(table.to_string())
+
+    for name, segment in report.segments(pooled, predicted).items():
+        _heading(f"BY {name.upper()}")
+        print(segment.to_string())
+
+    figure_path = charts.error_diagnostics(
+        pooled["posted_rate"], predicted, CONFIG.paths.figures / "error_diagnostics.png",
+    )
+    print(f"\nwrote {figure_path}")
+
+
 def run_predict(pipeline: Pipeline) -> None:
     _heading("PREDICTING validation.csv")
     model = pipeline.model().fit(pipeline.train)
@@ -149,7 +174,12 @@ def run_december(pipeline: Pipeline) -> None:
     print(f"wrote {figure_path}")
 
 
-COMMANDS = {"validate": run_validate, "predict": run_predict, "december": run_december}
+COMMANDS = {
+    "validate": run_validate,
+    "evaluate": run_evaluate,
+    "predict": run_predict,
+    "december": run_december,
+}
 
 
 def main(argv: list[str] | None = None) -> int:
