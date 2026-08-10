@@ -1,0 +1,8 @@
+# CSVs are stored byte for byte, with no end-of-line normalisation.
+#
+# Three of the files in data/ are supplied by the assessment and are quoted as
+# unmodified; letting Git rewrite their line endings on checkout would make that false on
+# any platform whose native ending differs from the one they were committed with. The
+# generated prediction files get the same treatment so a clone on another platform does
+# not show 12,000 changed lines that are not changes.
+*.csv -text

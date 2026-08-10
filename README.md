@@ -5,19 +5,21 @@ December chart.
 
 ## Data
 
-The Spotter-supplied datasets and the assessment PDF are **not committed**: they are
-gitignored so this repository does not redistribute assessment materials. To run the
-pipeline, place the supplied files as:
+The four supplied files are committed, so the pipeline runs on a fresh clone with nothing
+to place by hand:
 
 ```
-data/train_test.csv
-data/validation.csv
-data/december_chart_inputs.csv
-data/validation_predictions_template.csv
+data/train_test.csv                       48,000 labelled loads, Jan-Oct
+data/validation.csv                       12,000 unlabelled loads, Nov-Dec
+data/december_chart_inputs.csv            31 fixed-input rows; `december` fills these
+data/validation_predictions_template.csv  the submission template
 ```
 
-`score.py` and the instructions at [`docs/assessment_readme.md`](docs/assessment_readme.md)
-are included so the documented workflow is reproducible.
+This repository is private and shared only with the reviewers who supplied those files,
+and `december_chart_inputs.csv` with its `predicted_rate` column filled is itself a
+deliverable. The assessment PDF is not committed, since nothing here reads it and
+[`docs/assessment_readme.md`](docs/assessment_readme.md) carries the instructions that
+matter. `score.py` is included and unmodified.
 
 ## Setup
 
@@ -44,16 +46,19 @@ python -m freight_rate.cli all
 | `december` | December curves + `december_predictions.csv` |
 | `all` | All four |
 
-Then the official scorer:
+Then the official scorer, exactly as the assessment documents it:
 
 ```bash
-python score.py --predictions validation_predictions.csv --december-predictions december_predictions.csv
+python score.py --predictions validation_predictions.csv --december-predictions data/december_chart_inputs.csv
 ```
 
-> **Scorer invocation.** The supplied instructions fill
-> `data/december_chart_inputs.csv` in place. This pipeline writes the filled copy to
-> `december_predictions.csv` instead, leaving `data/` exactly as supplied. Same
-> structure, and the scorer accepts either.
+> **Where the deliverables land.** `december` fills `data/december_chart_inputs.csv`'s
+> `predicted_rate` column in place, which is what the instructions ask for and what the
+> command above reads. Filling in place is idempotent: the file is read before it is
+> written, and only `predicted_rate` changes. An identical copy is also written to
+> `december_predictions.csv` at the repo root, which is the path
+> `tests/test_scorer_contract.py` checks and lets the scorer run without reaching into
+> `data/`.
 
 Tests and lint:
 

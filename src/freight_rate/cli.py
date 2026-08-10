@@ -168,9 +168,17 @@ def run_december(pipeline: Pipeline) -> None:
     filled = raw.copy()
     filled["predicted_rate"] = np.round(curves[-1], 2)
     filled["date"] = filled["date"].dt.strftime("%Y-%m-%d")
+
+    # The assessment says to fill december_chart_inputs.csv's predicted_rate column, and
+    # its documented scorer invocation reads that path, so that is the deliverable. The
+    # file has already been read into `raw` above, so filling it in place cannot lose it.
+    filled.to_csv(CONFIG.paths.december_inputs, index=False)
+    # An identical copy at the repo root: the path tests/test_scorer_contract.py reads,
+    # and it lets the scorer run without a path into data/.
     filled.to_csv(CONFIG.paths.december_predictions, index=False)
 
-    print(f"\nwrote {CONFIG.paths.december_predictions}")
+    print(f"\nwrote {CONFIG.paths.december_inputs}  (the deliverable)")
+    print(f"wrote {CONFIG.paths.december_predictions}  (committed copy)")
     print(f"wrote {figure_path}")
 
 

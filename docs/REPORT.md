@@ -288,10 +288,18 @@ eight deciles, drifting only at the ends.
 
 ## 10. Deliverables
 
-**The December chart.** `december_chart_inputs.csv` freezes every input except the date,
-so the curve isolates the date handling. Coordinates come from an exact city lookup,
-`market_index` from each date's recovered level, and `quote_signal` from a conditional
-median held constant all month.
+**The December chart**, as produced by the supplied scorer from the filled
+`data/december_chart_inputs.csv`:
+
+![Candidate December chart](../reports/figures/candidate_december.png)
+
+The file freezes every input except the date, so this curve isolates the date handling
+and nothing else. Coordinates come from an exact city lookup, `market_index` from each
+date's recovered level, and `quote_signal` from a conditional median held constant all
+month.
+
+**That it moves at all is the encoding decision from §6**, and the failure it avoids is
+worth seeing beside it. Same model, same training data, same non-date features:
 
 ![December encoding comparison](../reports/figures/december_encoding_comparison.png)
 
@@ -311,6 +319,13 @@ pinned.
 **`validation_predictions.csv`.** 12,000 rows, $172.91 to $6,841.94, no nulls.
 `tests/test_scorer_contract.py` asserts the output satisfies every rule in `score.py`,
 because a format rejection scores zero regardless of model quality. 63 tests in total.
+
+Both files sit where the assessment instructions put them, and the documented scorer
+invocation runs unmodified:
+
+```bash
+python score.py --predictions validation_predictions.csv --december-predictions data/december_chart_inputs.csv
+```
 
 ## 11. Limits
 
