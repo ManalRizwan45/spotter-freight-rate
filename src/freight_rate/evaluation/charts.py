@@ -70,6 +70,95 @@ def december_comparison(dates: pd.Series, curves: list[np.ndarray],
     return path
 
 
+def quote_baseline(quoted, actual, path: Path, sample: int = 4000) -> Path:
+    """The quote against the realised rate, and what is left over.
+
+    This is the finding the target transform rests on: `distance x quote_signal` is
+    already most of the answer, so the model is given the deviation to learn rather
+    than the rate.
+    """
+    quoted = np.asarray(quoted, dtype=float)
+    actual = np.asarray(actual, dtype=float)
+    ratio = actual / quoted
+
+    figure, axes = plt.subplots(1, 2, figsize=(11, 4.0), dpi=150)
+
+    shown = np.random.default_rng(0).choice(
+        actual.size, size=min(sample, actual.size), replace=False
+    )
+    limit = 12000
+    axes[0].scatter(quoted[shown], actual[shown], s=5, alpha=0.25, color=TEAL)
+    axes[0].plot([0, limit], [0, limit], color=RUST, linewidth=1.4, linestyle="--")
+    axes[0].set_xlim(0, limit)
+    axes[0].set_ylim(0, limit)
+    axes[0].set_xlabel("distance x quote_signal ($)")
+    axes[0].set_ylabel("actual posted_rate ($)")
+    axes[0].set_title("The quote is already the answer, mostly", loc="left", fontweight="bold")
+
+    axes[1].hist(np.clip(ratio, 0.5, 2.0), bins=90, color=TEAL)
+    axes[1].axvline(1.0, color=RUST, linestyle="--", linewidth=1.6)
+    axes[1].set_xlabel("actual / quoted")
+    axes[1].set_title(
+        f"Deviation from it: what the model learns "
+        f"({np.mean(np.abs(ratio - 1) <= 0.02):.0%} within 2%)",
+        loc="left", fontweight="bold",
+    )
+
+    for axis in axes:
+        axis.grid(axis="y", color="#D9E2E4", linewidth=0.8)
+        axis.spines[["top", "right"]].set_visible(False)
+        axis.spines[["left", "bottom"]].set_color("#9DAFB3")
+
+    figure.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(path, bbox_inches="tight")
+    plt.close(figure)
+    return path
+
+
+def regime_split(by_month: pd.DataFrame, daily_share: pd.Series, path: Path) -> Path:
+    """Where the model beats the quote, where it loses to it, and why.
+
+    `by_month` carries 'model MAE' and 'quote-only MAE' per month; `daily_share` is the
+    percentage of each day's loads paying more than 20% over quote. Kept as two views
+    because the second explains the first: the error does not drift, it switches.
+    """
+    figure, axes = plt.subplots(1, 2, figsize=(12.5, 3.9), dpi=150)
+
+    positions = np.arange(len(by_month))
+    width = 0.38
+    axes[0].bar(positions - width / 2, by_month["model MAE"], width, color=TEAL, label="model")
+    axes[0].bar(positions + width / 2, by_month["quote-only MAE"], width, color=SLATE,
+                label="quote only, no model")
+    axes[0].set_xticks(positions)
+    axes[0].set_xticklabels(by_month.index, rotation=30)
+    axes[0].set_ylabel("MAE ($)")
+    axes[0].set_title("In two of six months the model is worse than doing nothing",
+                      loc="left", fontweight="bold")
+    axes[0].legend(frameon=False, fontsize=8)
+
+    axes[1].plot(daily_share.index, daily_share.to_numpy(), color=TEAL, linewidth=1.1)
+    axes[1].axvline(pd.Timestamp("2025-11-01"), color=RUST, linestyle="--", linewidth=1.5)
+    axes[1].annotate("labels stop here", xy=(pd.Timestamp("2025-11-01"), 46),
+                     xytext=(-92, 0), textcoords="offset points", color=RUST,
+                     fontweight="bold", fontsize=8.5)
+    axes[1].set_ylabel("% of loads paying >20% over quote")
+    axes[1].set_title("The regime switches by calendar month, not by day",
+                      loc="left", fontweight="bold")
+    axes[1].tick_params(axis="x", rotation=30, labelsize=8)
+
+    for axis in axes:
+        axis.grid(axis="y", color="#D9E2E4", linewidth=0.8)
+        axis.spines[["top", "right"]].set_visible(False)
+        axis.spines[["left", "bottom"]].set_color("#9DAFB3")
+
+    figure.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(path, bbox_inches="tight")
+    plt.close(figure)
+    return path
+
+
 def error_diagnostics(actual, predicted, path: Path, sample: int = 6000) -> Path:
     """Three residual views of one set of predictions.
 
