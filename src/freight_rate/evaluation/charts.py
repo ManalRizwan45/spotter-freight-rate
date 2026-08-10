@@ -19,6 +19,12 @@ FIXED_INPUTS_CAPTION = (
 
 TEAL, RUST, SLATE = "#064A56", "#B3261E", "#607478"
 
+# Top slice of each panel reserved for the caption. The axes share a y scale, so a
+# caption pinned to a fixed fraction of the panel height will sit on top of whichever
+# curve happens to run highest unless the data is held out of this band.
+CAPTION_BAND = 0.30
+CAPTION_ANCHOR = 0.97
+
 
 def december_comparison(dates: pd.Series, curves: list[np.ndarray],
                         titles: list[str], colours: list[str], path: Path) -> Path:
@@ -39,9 +45,19 @@ def december_comparison(dates: pd.Series, curves: list[np.ndarray],
         axis.annotate(
             f"moves ${values.max() - values.min():,.2f} across the month\n"
             f"{len(np.unique(values.round(2)))} distinct values in 31 days",
-            xy=(0.04, 0.95), xycoords="axes fraction", va="top",
+            xy=(0.04, CAPTION_ANCHOR), xycoords="axes fraction", va="top",
             fontsize=9.5, color=colour, fontweight="bold",
         )
+
+    # Place the limits so the highest curve tops out at the foot of the caption band.
+    # Matplotlib's autoscale knows nothing about the annotations, so left to itself it
+    # fits the data to the full panel and the tallest curve runs through the text.
+    lowest = min(float(values.min()) for values in curves)
+    highest = max(float(values.max()) for values in curves)
+    padding = 0.06 * (highest - lowest) or 1.0
+    floor = lowest - padding
+    axes[0].set_ylim(floor, floor + (highest + padding - floor) / (1 - CAPTION_BAND))
+
     axes[0].set_ylabel("Predicted rate ($)")
     figure.suptitle("Identical model, identical training data, identical non-date features",
                     x=0.008, ha="left", fontsize=14.5, fontweight="bold")
