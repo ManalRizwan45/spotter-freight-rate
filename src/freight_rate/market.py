@@ -12,10 +12,13 @@ agree at correlation 0.9997.
 This matters because december_chart_inputs.csv ships without market_index, and
 validation.csv covers all 31 December days.
 
-Leakage note: this reads the market_index feature column only, never posted_rate.
-Computing it across train and validation together uses information the assessment
-supplies for the prediction window. That is a judgment call, so it is stated rather
-than assumed.
+Why it takes several frames, and why that is not leakage: it reads the market_index
+feature column and never posted_rate, and each date's level is averaged over that date's
+own loads. Train covers January to October and validation November and December, so the
+two never contribute to the same date. No training row's feature draws on the prediction
+window, and no validation row's draws on training. market_index is supplied for the
+validation rows, so using it is not using information that would be absent at prediction
+time.
 """
 from __future__ import annotations
 

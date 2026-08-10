@@ -330,4 +330,3 @@ python score.py --predictions validation_predictions.csv --december-predictions 
 |---|---|
 | The regime risk in §9 | Unresolved. Nothing observable at prediction time distinguishes the two regimes |
 | Selection and scoring share the same three folds | The reported MAE is optimistic as a *generalisation* estimate by an amount this design cannot measure. Comparisons between configurations are unaffected |
-| Leakage boundary | The daily market level reads the `market_index` feature column across both splits, never `posted_rate`. A judgment call, stated rather than assumed |

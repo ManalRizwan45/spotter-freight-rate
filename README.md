@@ -393,9 +393,11 @@ tests/            63 tests, including a scorer-contract guard
 - **Imputation lives in the estimator, not in cleaning.** RandomForest cannot read NaN.
   Medians are taken from the training matrix and reused unchanged at predict time, so a
   validation row cannot influence its own imputed value. Cleaning stays a pure transform.
-- **Leakage boundary.** The daily market level reads the `market_index` feature column
-  across both train and validation, never `posted_rate`, because the assessment supplies
-  that column for the prediction window. That is a judgment call, so it is stated rather
-  than assumed.
+- **The daily market level is built from both files, and that is not leakage.** It reads
+  the `market_index` feature column and never `posted_rate`, and each date's level is
+  averaged over that date's own loads. Train is January to October and validation is
+  November and December, so the two never contribute to the same date, and `market_index`
+  is supplied for the validation rows. Nothing here uses information that would be absent
+  at prediction time.
 - **`tests/test_scorer_contract.py`** asserts the output satisfies every rule in
   `score.py`. A format rejection scores zero regardless of model quality.
