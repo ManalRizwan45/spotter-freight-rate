@@ -61,6 +61,23 @@ Tests and lint:
 python -m pytest && python -m ruff check src tests
 ```
 
+## Report
+
+[`reports/REPORT.pdf`](reports/REPORT.pdf) is the deliverable: seven pages covering the
+pipeline stage by stage, the findings that shaped it, the model comparison and the
+results. This README is the long version, and the notebook below is the working one.
+
+`reports/` holds only output. The source is [`docs/REPORT.md`](docs/REPORT.md) and the PDF
+is built from it, so a correction is made in one place:
+
+```bash
+python docs/make_figures.py && python docs/make_pdf.py
+```
+
+`make_figures.py` produces the two figures no pipeline command has reason to write; the
+other two come from `cli december` and `cli evaluate`. `make_pdf.py` needs headless Chrome
+or Edge, and `pip install -e ".[report]"` for the rest.
+
 ## Notebook walkthrough
 
 [`notebooks/01_walkthrough.ipynb`](notebooks/01_walkthrough.ipynb) walks the whole
