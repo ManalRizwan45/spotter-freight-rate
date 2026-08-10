@@ -39,9 +39,10 @@ python -m freight_rate.cli all
 | Command | Does |
 |---|---|
 | `validate` | Forward-chaining validation, plus the random k-fold contrast |
+| `evaluate` | The full metric panel, segment breakdowns and residual diagnostics |
 | `predict` | Writes `validation_predictions.csv` |
 | `december` | December curves + `december_predictions.csv` |
-| `all` | All three |
+| `all` | All four |
 
 Then the official scorer:
 
@@ -60,12 +61,25 @@ Tests and lint:
 python -m pytest && python -m ruff check src tests
 ```
 
-## Exploratory analysis
+## Notebook walkthrough
 
-[`notebooks/01_exploration.ipynb`](notebooks/01_exploration.ipynb) is committed with all
-outputs and figures embedded, so it reads without executing. It reads from
-`src/freight_rate/` rather than reimplementing anything, so it cannot drift from the
-pipeline. To re-run it:
+[`notebooks/01_walkthrough.ipynb`](notebooks/01_walkthrough.ipynb) walks the whole
+pipeline in the order it runs, with the evidence for each decision beside the code that
+implements it. It imports from `src/freight_rate/` rather than reimplementing anything,
+so it cannot drift from what `cli.py` does, and it is committed with all outputs and
+figures embedded so it reads without executing.
+
+| Part | Sections | Covers |
+|---|---|---|
+| I. Exploratory analysis | 1-10 | What the data says, and what each finding forces |
+| II. Feature engineering | 11-12 | The 15 columns, why each is there, what each is worth |
+| III. Encoding | 13-15 | Equipment, dates, geography, each choice measured |
+| IV. Missing values | 16 | Where every gap is filled, and why the placement is the point |
+| V. Training and testing | 17-19 | Target transform, the estimator, the forward-chaining harness |
+| VI. Evaluation | 20-23 | The panel, what MAE hides, residual diagnostics |
+| VII. Deliverables | 24-25 | The December chart and `validation_predictions.csv` |
+
+To re-run it:
 
 ```bash
 python -m pip install -e ".[notebooks]"
@@ -105,6 +119,92 @@ market level all recur, so December lands inside the learned range.
 **Cities are never encoded by name.** Eight of them (Allentown, Charlotte, Chicago,
 Jackson, Knoxville, Laredo, Norfolk, San Diego) appear only in `validation.csv`.
 Geography comes from the four coordinates and a haversine distance, which cover unseen cities.
+
+## Evaluation
+
+`python -m freight_rate.cli evaluate` scores **pooled out-of-fold predictions**: the three
+forward folds concatenated, 28,890 loads from May to October, each predicted by a model
+that was trained only on earlier months. Scoring the rows the forest was fitted on would
+measure its memory instead.
+
+| | model | quote only | mean rate |
+|---|---|---|---|
+| MAE $ | **128.97** | 286.37 | 1,183.74 |
+| RMSE $ | 636.26 | 726.69 | 1,521.83 |
+| bias $ | -64.91 | -59.71 | 0.00 |
+| MAPE % | 5.70 | 13.97 | 83.51 |
+| median APE % | 2.30 | 7.04 | 43.55 |
+| P90 APE % | 8.13 | 33.21 | 197.55 |
+| WAPE % | 5.35 | 11.88 | 49.12 |
+| bias % | -2.69 | -2.48 | 0.00 |
+| R² | 0.83 | 0.77 | 0.00 |
+| within 5% | 78.2 | 44.9 | 5.5 |
+| within 10% | 93.0 | 56.7 | 10.9 |
+| within 25% | 98.3 | 82.5 | 26.7 |
+
+MAE reads $128.97 here against $128.93 in the Approach section. Same predictions: pooled
+by load rather than averaged across the three folds, which weights folds by their slightly
+different test sizes.
+
+The comparison against `quote only` is what says the model earned its place: a **55.0%
+MAE cut** against `distance × quote_signal`, the estimate available before any model runs.
+`mean rate` is the conventional null and is set as generously as possible, using the mean
+of the very rows being scored, which no real predictor would know.
+
+`bias` is signed on purpose. MAE cannot tell a model that quotes 3% high on everything
+from one that scatters, and a rate desk can. WAPE is total error over total dollars, so a
+$9,000 load counts for more than a $500 one, which MAPE does not do. R² is reported
+because it is expected, and it decides nothing: `posted_rate` scales with trip length, so
+`distance` alone explains most of its variance and 0.83 largely restates that.
+
+Two findings the pooled MAE hides, both with their measurements in the notebook.
+
+**The model quotes low, by 2.69% of dollars.** It is mechanical rather than a data
+problem: the forest fits the mean of the log ratio, and exponentiating a mean lands below
+the mean of the exponentials by about `exp(σ²/2)`, which measures 1.30 of the 3 points.
+Duan's smearing estimator removes the bias and costs **$8.29 MAE**, because exponentiating
+an unbiased log-space fit gives a conditional *median*, and the median is what minimises
+absolute error. It ships uncorrected because the assessment scores MAE. Feeding a revenue
+forecast rather than a per-load quote, the correction belongs back in.
+
+**The training year holds two regimes, and in one of them the model is worse than no
+model at all.**
+
+| Month | model MAE | quote-only MAE | loads paying >20% over quote |
+|---|---|---|---|
+| 2025-05 | 91.88 | 403.40 | 39.8% |
+| 2025-06 | **144.56** | **82.85** | 0.8% |
+| 2025-07 | 107.96 | 415.77 | 39.2% |
+| 2025-08 | 194.00 | 317.26 | 20.9% |
+| 2025-09 | **107.03** | **71.75** | 0.7% |
+| 2025-10 | 129.76 | 413.72 | 36.0% |
+
+In January, February, March, June and September the quote is essentially exact, the
+median load pays 1.000× and there is no deviation to predict. The model predicts one
+anyway, and loses to submitting the raw quote by 49% and 74%. In April, May, July and
+October a third of loads run past the quote and the model cuts MAE by 69 to 77%. August is
+a third case, active on 21 of its 31 days. The switch is by calendar month and it is
+total: every day of an active month is active, every day of a quiet month is quiet.
+
+Nothing available at prediction time separates the two. The daily market level does not:
+June is quiet at 1.280 while October is active at 0.957, and the correlation between the
+daily market level and the daily share running over quote is +0.42. A `month` feature
+would carry it for the ten months in the training file and be useless for the two that
+matter, for the same reason the date encoding rejects `date_ordinal`.
+
+So the model hedges, predicting the unconditional mixture: 16.6% of November and December
+loads above 1.2 × quote, against 17.5% across the training year. **That is the largest
+single risk in this submission and no pooled metric shows it.** If November and December
+are quiet, `distance × quote_signal` with no model at all would score better; if they are
+active, the model wins by a wide margin. Stated as an open risk rather than left for a
+reader to find.
+
+Error shape, rather than error size, is in `reports/figures/error_diagnostics.png`. The
+fit holds across the whole rate range, so a single MAE describes it; the error
+distribution sits slightly left of zero, which is the bias above; and calibration is flat
+through the middle eight deciles of predicted rate, drifting only at the ends, where a
+load the model calls cheapest turns out 2.1% dearer than the call and one it calls dearest
+1.2% cheaper.
 
 ## The December chart
 
@@ -164,10 +264,13 @@ src/freight_rate/
     target.py     log-ratio transform and its inverse
     estimator.py  fit / predict
     splits.py     forward chaining, and the random-fold contrast
-  evaluation/     metrics and figures
+  evaluation/
+    metrics.py    the four numbers every configuration was selected on
+    report.py     the full panel, segment breakdowns and the baselines
+    charts.py     figures
   december.py     reconstructing the chart file's missing columns
   cli.py          entry point
-tests/            44 tests, including a scorer-contract guard
+tests/            63 tests, including a scorer-contract guard
 ```
 
 `score.py`, `data/` and `requirements.txt` are supplied by the assessment and unmodified.
@@ -212,7 +315,8 @@ tests/            44 tests, including a scorer-contract guard
 
   **The folds disagree about which model is better, and what separates them is model
   capacity.** Fold 2, which tests July and August, is the block every model finds hardest,
-  and the ranking there is close to reversed. Against RandomForest on fold 2: XGBoost at
+  and the ranking there is close to reversed. The month breakdown in the Evaluation
+  section localises that to August specifically, at MAE 194.00 against July's 107.96. Against RandomForest on fold 2: XGBoost at
   depth 3 is 14.52 better, ElasticNet (a linear model) 13.89 better, LightGBM at four
   leaves 7.28 better. All three pay for it on folds 1 and 3, ElasticNet by 44.41.
 
